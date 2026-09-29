@@ -1,0 +1,27 @@
+{
+  "appVersion": "1.0",
+  "stories": [
+    {
+      "id": "la-cigogne-d-alsace",
+      "title": "Le secret de la cigogne d'Alsace",
+      "audioFile": "la-cigogne-d-alsace.mp3",
+      "imageFile": "la-cigogne-d-alsace.png",
+      "language": "fr",
+      "ai": true,
+      "publishedDate": "2026-09-29",
+      "ageMin": 3,
+      "ageMax": 8
+    },
+    {
+      "id": "le-lynx-des-vosges",
+      "title": "Le lynx des Vosges",
+      "audioFile": "le-lynx-des-vosges.mp3",
+      "imageFile": "le-lynx-des-vosges.png",
+      "language": "fr",
+      "ai": true,
+      "publishedDate": "2026-09-29",
+      "ageMin": 3,
+      "ageMax": 8
+    }
+  ]
+}
