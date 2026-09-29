@@ -48,6 +48,8 @@ fun ParentSettingsScreen(
     onUserAgeChange: (Int?) -> Unit,
     storyLanguage: String,
     onStoryLanguageChange: (String) -> Unit,
+    sleepTimeoutMinutes: Int,
+    onSleepTimeoutChange: (Int) -> Unit,
     onChangeCode: (String) -> Unit,
     onQuitApp: () -> Unit,
     onClose: () -> Unit,
@@ -56,6 +58,7 @@ fun ParentSettingsScreen(
 ) {
     var showChangeCodeDialog by remember { mutableStateOf(false) }
     var ageText by remember(userAge) { mutableStateOf(userAge?.toString() ?: "") }
+    var sleepTimeoutText by remember(sleepTimeoutMinutes) { mutableStateOf(sleepTimeoutMinutes.toString()) }
 
     Column(
         modifier = Modifier
@@ -185,6 +188,26 @@ fun ParentSettingsScreen(
                 }
             }
         }
+
+        // Sleep Timeout Configuration
+        OutlinedTextField(
+            value = sleepTimeoutText,
+            onValueChange = { text ->
+                sleepTimeoutText = text.filter(Char::isDigit).take(3)
+                onSleepTimeoutChange(sleepTimeoutText.toIntOrNull() ?: 10)
+            },
+            label = { Text("Auto-Sleep Timeout (minutes)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            "Device enters sleep mode after this period of inactivity",
+            style = MaterialTheme.typography.bodySmall,
+            fontSize = 9.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        )
 
         // Action buttons below the mode card
         Button(

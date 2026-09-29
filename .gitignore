@@ -1,3 +1,4 @@
+### Android/Gradle ###
 *.iml
 .gradle/
 local.properties
@@ -9,3 +10,29 @@ captures/
 .cxx/
 *.apk
 *.aab
+
+### Story Manager Server ###
+# Node.js dependencies in content folder
+content/node_modules/
+content/package-lock.json
+
+# Uploaded story files (regenerate from manifest)
+content/audio/
+content/images/
+
+### Python ###
+.venv/
+__pycache__/
+*.pyc
+
+### IDE/Editor ###
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+### Build artifacts ###
+tmp/
+dist/
+.kotlin/

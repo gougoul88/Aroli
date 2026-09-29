@@ -34,6 +34,7 @@ import com.aroli.storybox.player.PlayerViewModel
 import com.aroli.storybox.ui.NoUpdateDialog
 import com.aroli.storybox.ui.ParentCodeDialog
 import com.aroli.storybox.ui.ParentSettingsScreen
+import com.aroli.storybox.ui.SleepModeScreen
 import com.aroli.storybox.ui.StoryBoxScreen
 import com.aroli.storybox.ui.UpdateAvailableDialog
 import com.aroli.storybox.ui.UpdateCheckingDialog
@@ -83,12 +84,22 @@ class MainActivity : ComponentActivity() {
                     val allowAiStories by appSettings.allowAiStories.collectAsStateWithLifecycle(initialValue = true)
                     val userAge by appSettings.userAge.collectAsStateWithLifecycle(initialValue = null)
                     val storyLanguage by appSettings.storyLanguage.collectAsStateWithLifecycle(initialValue = "fr")
+                    val sleepTimeoutMinutes by appSettings.sleepTimeoutMinutes.collectAsStateWithLifecycle(initialValue = 10)
                     val parentCode by appSettings.parentCode.collectAsStateWithLifecycle(initialValue = DEFAULT_PARENT_CODE)
                     val uiState by playerViewModel.uiState.collectAsStateWithLifecycle()
 
                     var showSettings by remember { mutableStateOf(false) }
                     var showCodeDialog by remember { mutableStateOf(false) }
                     var forceReloadKey by remember { mutableStateOf(0) }
+                    var showSleepMode by remember { mutableStateOf(false) }
+                    var lastInteractionTime by remember { mutableStateOf(System.currentTimeMillis()) }
+                    var sleepCheckTimer by remember { mutableStateOf(0L) }  // Track sleep check cycles
+                    var wasPlayingBeforeSleep by remember { mutableStateOf(false) }  // Track playback state before sleep
+
+                    // Update check timer on state changes (triggers recomposition of sleep effect)
+                    LaunchedEffect(showSettings, showCodeDialog) {
+                        sleepCheckTimer = System.currentTimeMillis()
+                    }
 
                     // Update checker states
                     var showUpdateChecking by remember { mutableStateOf(false) }
@@ -131,8 +142,40 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // Auto-sleep timer: enters sleep mode if no interaction for configured timeout
+                    LaunchedEffect(sleepTimeoutMinutes, sleepCheckTimer) {
+                        if (!showSettings && !showCodeDialog && !showSleepMode) {
+                            // Only check for auto-sleep when in story playback mode
+                            val checkInterval = 1000L  // Check every second
+                            while (!showSettings && !showCodeDialog && !showSleepMode) {
+                                val elapsedMillis = System.currentTimeMillis() - lastInteractionTime
+                                val elapsedMinutes = elapsedMillis / (1000 * 60)
+                                if (elapsedMinutes >= sleepTimeoutMinutes) {
+                                    // Save playback state before entering sleep
+                                    wasPlayingBeforeSleep = uiState.isPlaying
+                                    // Only pause if currently playing (avoid accidentally starting playback)
+                                    if (wasPlayingBeforeSleep) {
+                                        playerViewModel.togglePlayPause()
+                                    }
+                                    showSleepMode = true
+                                    break
+                                }
+                                kotlinx.coroutines.delay(checkInterval)
+                            }
+                        }
+                    }
+
                     Box(modifier = Modifier.fillMaxSize()) {
-                        if (showSettings) {
+                        if (showSleepMode) {
+                            SleepModeScreen(onWake = {
+                                showSleepMode = false
+                                lastInteractionTime = System.currentTimeMillis()
+                                // Restore playback state if it was playing before sleep
+                                if (wasPlayingBeforeSleep) {
+                                    playerViewModel.togglePlayPause()
+                                }
+                            })
+                        } else if (showSettings) {
                             ParentSettingsScreen(
                                 mode = mode,
                                 onModeChange = { newMode -> lifecycleScope.launch { appSettings.setMode(newMode) } },
@@ -147,6 +190,8 @@ class MainActivity : ComponentActivity() {
                                 onUserAgeChange = { age -> lifecycleScope.launch { appSettings.setUserAge(age) } },
                                 storyLanguage = storyLanguage,
                                 onStoryLanguageChange = { lang -> lifecycleScope.launch { appSettings.setStoryLanguage(lang) } },
+                                sleepTimeoutMinutes = sleepTimeoutMinutes,
+                                onSleepTimeoutChange = { minutes -> lifecycleScope.launch { appSettings.setSleepTimeoutMinutes(minutes) } },
                                 onChangeCode = { code -> lifecycleScope.launch { appSettings.setParentCode(code) } },
                                 onQuitApp = {
                                     lifecycleScope.launch {
@@ -159,7 +204,10 @@ class MainActivity : ComponentActivity() {
                                         finishAndRemoveTask()
                                     }
                                 },
-                                onClose = { showSettings = false },
+                                onClose = { 
+                                    showSettings = false
+                                    lastInteractionTime = System.currentTimeMillis()
+                                },
                                 folderUri = folderUri,
                                 onCheckUpdates = {
                                     showUpdateChecking = true
@@ -195,10 +243,22 @@ class MainActivity : ComponentActivity() {
                                 stories = uiState.stories,
                                 currentIndex = uiState.currentIndex,
                                 unavailableMessage = uiState.unavailableMessage,
-                                onPrevious = playerViewModel::previous,
-                                onNext = playerViewModel::next,
-                                onTogglePlayPause = playerViewModel::togglePlayPause,
-                                onOpenParentMenu = { showCodeDialog = true },
+                                onPrevious = {
+                                    lastInteractionTime = System.currentTimeMillis()
+                                    playerViewModel.previous()
+                                },
+                                onNext = {
+                                    lastInteractionTime = System.currentTimeMillis()
+                                    playerViewModel.next()
+                                },
+                                onTogglePlayPause = {
+                                    lastInteractionTime = System.currentTimeMillis()
+                                    playerViewModel.togglePlayPause()
+                                },
+                                onOpenParentMenu = { 
+                                    lastInteractionTime = System.currentTimeMillis()
+                                    showCodeDialog = true 
+                                },
                             )
 
                             if (showCodeDialog) {
@@ -206,10 +266,14 @@ class MainActivity : ComponentActivity() {
                                     expectedCode = parentCode,
                                     appVersion = VersionInfo.getAppVersion(this@MainActivity),
                                     onSuccess = {
+                                        lastInteractionTime = System.currentTimeMillis()
                                         showCodeDialog = false
                                         showSettings = true
                                     },
-                                    onDismiss = { showCodeDialog = false },
+                                    onDismiss = { 
+                                        lastInteractionTime = System.currentTimeMillis()
+                                        showCodeDialog = false 
+                                    },
                                 )
                             }
                         }

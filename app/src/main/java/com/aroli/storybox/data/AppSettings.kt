@@ -31,6 +31,7 @@ class AppSettings(private val context: Context) {
         val USER_AGE = intPreferencesKey("user_age")
         val PARENT_CODE = stringPreferencesKey("parent_code")
         val STORY_LANGUAGE = stringPreferencesKey("story_language")  // ISO 639-1 code: "fr", "en", etc.
+        val SLEEP_TIMEOUT_MINUTES = intPreferencesKey("sleep_timeout_minutes")  // Auto-sleep timeout in minutes (default 10)
     }
 
     val mode: Flow<ContentMode> = context.dataStore.data.map { prefs ->
@@ -46,6 +47,8 @@ class AppSettings(private val context: Context) {
     val parentCode: Flow<String> = context.dataStore.data.map { it[Keys.PARENT_CODE] ?: DEFAULT_PARENT_CODE }
 
     val storyLanguage: Flow<String> = context.dataStore.data.map { it[Keys.STORY_LANGUAGE] ?: "fr" }  // Default to French
+
+    val sleepTimeoutMinutes: Flow<Int> = context.dataStore.data.map { it[Keys.SLEEP_TIMEOUT_MINUTES] ?: 10 }  // Default to 10 minutes
 
     suspend fun setMode(mode: ContentMode) {
         context.dataStore.edit { it[Keys.MODE] = mode.name }
@@ -77,6 +80,10 @@ class AppSettings(private val context: Context) {
 
     suspend fun setStoryLanguage(language: String) {
         context.dataStore.edit { it[Keys.STORY_LANGUAGE] = language }
+    }
+
+    suspend fun setSleepTimeoutMinutes(minutes: Int) {
+        context.dataStore.edit { it[Keys.SLEEP_TIMEOUT_MINUTES] = minutes }
     }
 
     /** Clears the on-disk manifest + downloaded-audio cache used by GitHubContentRepository. */
