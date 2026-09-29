@@ -75,6 +75,25 @@ node server.js
 - **Computer**: Windows/Mac/Linux with USB debugging enabled
 - **USB Cable**: For ADB connection or WiFi debugging
 
+---
+
+## ⚡ Quick Start (Easiest Way)
+
+### Download Pre-built APK from GitHub Releases
+
+1. Go to [Aroli Releases](../../releases) (or click **Releases** on the right)
+2. Download the latest `aroli-release.apk` or `app-release.apk`
+3. **Option A (Automatic)**: Run the installation script
+   - **Windows**: Double-click `install.bat`
+   - **Mac/Linux**: Run `chmod +x install.sh && ./install.sh`
+4. **Option B (Manual)**: Follow **Steps 1-5** below
+
+The installation script automates the ADB process and is the easiest way to share with others!
+
+---
+
+## 🔧 Manual Build & Installation (For Developers)
+
 ### Step 1: Enable Developer Mode on Android Device
 
 1. Go to **Settings** → **About Phone**
@@ -333,7 +352,58 @@ The `AdminReceiver.kt` component:
 
 ---
 
-## 📝 License
+## � Creating & Sharing Releases
+
+### Automated GitHub CI/CD
+
+This project uses **GitHub Actions** to automatically build and release APKs. Releases are created whenever you push a version tag.
+
+#### Creating a New Release:
+
+1. **Update version in `app/build.gradle.kts`:**
+   ```kotlin
+   versionCode = 2          // Increment this
+   versionName = "1.1"      // Update this to semantic version
+   ```
+
+2. **Commit your changes:**
+   ```bash
+   git add app/build.gradle.kts
+   git commit -m "Release v1.1"
+   ```
+
+3. **Create and push a version tag:**
+   ```bash
+   git tag v1.1
+   git push origin v1.1
+   ```
+
+4. **GitHub Actions automatically:**
+   - ✅ Builds the release APK
+   - ✅ Creates a GitHub Release page
+   - ✅ Attaches the APK to the release
+   - ✅ Generates release notes
+
+5. **Share the link:** Users can download from `https://github.com/yourusername/Aroli/releases`
+
+#### Manual Release Trigger:
+
+You can also manually trigger a build from GitHub:
+1. Go to **Actions** tab on GitHub
+2. Click **Build and Release APK**
+3. Click **"Run workflow"** (right side)
+4. Choose branch and click **"Run workflow"**
+
+#### For Users (Distribution):
+
+**Easiest Method:**
+1. Download APK from [GitHub Releases](../../releases)
+2. Run `install.bat` (Windows) or `./install.sh` (Mac/Linux)
+3. Done!
+
+---
+
+## �📝 License
 
 Aroli is provided as-is for educational and personal use.
 
