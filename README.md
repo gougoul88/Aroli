@@ -25,13 +25,13 @@ Aroli is a secure, kid-friendly story playback application designed for Android 
 ### Screenshots
 
 **Story Playback Screen:**
-![Aroli Main Screen](./tmp/aroli.PNG)
+![Aroli Main Screen](./screenshots/aroli.PNG)
 
 **Parent Settings - Language Selection:**
-![Parent Settings](./tmp/parent_setting.PNG)
+![Parent Settings](./screenshots/parent_setting.PNG)
 
 **Parent Settings - Web Mode:**
-![Parent Web Settings](./tmp/parent_web.PNG)
+![Parent Web Settings](./screenshots/parent_web.PNG)
 
 ---
 
@@ -367,13 +367,13 @@ Aroli est une application sécurisée de lecture de contes adaptée aux enfants,
 ### Captures d'Écran
 
 **Écran de Lecture des Histoires:**
-![Écran Principal Aroli](./tmp/aroli.PNG)
+![Écran Principal Aroli](./screenshots/aroli.PNG)
 
 **Paramètres Parentaux - Sélection de Langue:**
-![Paramètres Parentaux](./tmp/parent_setting.PNG)
+![Paramètres Parentaux](./screenshots/parent_setting.PNG)
 
 **Paramètres Parentaux - Mode Web:**
-![Paramètres Web Parentaux](./tmp/parent_web.PNG)
+![Paramètres Web Parentaux](./screenshots/parent_web.PNG)
 
 ---
 

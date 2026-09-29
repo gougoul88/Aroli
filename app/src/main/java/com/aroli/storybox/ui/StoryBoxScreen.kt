@@ -90,6 +90,18 @@ fun StoryBoxScreen(
             )
         }
 
+        // Battery indicator in top-left
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BatteryIndicator()
+        }
+
+        // Settings icon in top-right
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)

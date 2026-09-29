@@ -33,6 +33,6 @@ __pycache__/
 .DS_Store
 
 ### Build artifacts ###
-tmp/
+# tmp/ - for temporary build artifacts (screenshots/ folder is tracked for documentation)
 dist/
 .kotlin/
