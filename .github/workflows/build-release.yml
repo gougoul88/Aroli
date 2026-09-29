@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: write
-  packages: read
 
 jobs:
   build:
@@ -30,42 +29,62 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease -q
 
       - name: Find APK file
         id: find_apk
         run: |
-          APK_PATH=$(find . -name "app-release.apk" -type f | head -1)
-          if [ -z "$APK_PATH" ]; then
-            echo "APK not found, trying debug build..."
-            APK_PATH=$(find . -name "app-debug.apk" -type f | head -1)
-          fi
-          if [ -z "$APK_PATH" ]; then
+          echo "Searching for APK files..."
+          ls -la app/build/outputs/apk/ 2>/dev/null || echo "No apk directory found"
+          
+          # Try release build first
+          if find app/build/outputs/apk/release -name "*.apk" -type f 2>/dev/null | head -1; then
+            APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" -type f | head -1)
+            echo "Found release APK: $APK_PATH"
+          elif find app/build/outputs/apk/debug -name "*.apk" -type f 2>/dev/null | head -1; then
+            APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -1)
+            echo "Found debug APK: $APK_PATH"
+          elif find . -name "*.apk" -type f 2>/dev/null | head -1; then
+            APK_PATH=$(find . -name "*.apk" -type f | head -1)
+            echo "Found APK in workspace: $APK_PATH"
+          else
             echo "ERROR: No APK file found!"
+            ls -R app/build/outputs/ 2>/dev/null || echo "Build outputs not found"
             exit 1
           fi
+          
           echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
-          echo "APK file found at: $APK_PATH"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          TAG_NAME=${{ github.ref_name }}
-          APK_FILE="${{ steps.find_apk.outputs.APK_PATH }}"
-          
-          # Check if release exists
-          if gh release view "$TAG_NAME" 2>/dev/null; then
-            echo "Release $TAG_NAME already exists, uploading APK..."
-            gh release upload "$TAG_NAME" "$APK_FILE" --clobber
-          else
-            echo "Creating new release $TAG_NAME..."
-            gh release create "$TAG_NAME" "$APK_FILE" --generate-notes
-          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TAG_NAME="${{ github.ref_name }}"
+          APK_FILE="${{ steps.find_apk.outputs.APK_PATH }}"
+          
+          if [ -z "$APK_FILE" ] || [ ! -f "$APK_FILE" ]; then
+            echo "ERROR: APK file not found: $APK_FILE"
+            exit 1
+          fi
+          
+          echo "Creating release $TAG_NAME with APK: $APK_FILE"
+          
+          # Check if release already exists
+          if gh release view "$TAG_NAME" 2>/dev/null; then
+            echo "Release $TAG_NAME already exists. Deleting it..."
+            gh release delete "$TAG_NAME" -y
+          fi
+          
+          # Create new release with APK
+          gh release create "$TAG_NAME" "$APK_FILE" --generate-notes
+          echo "✅ Release created successfully!"
 
       - name: Upload APK as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: aroli-apk
           path: ${{ steps.find_apk.outputs.APK_PATH }}
+          retention-days: 30
