@@ -37,23 +37,21 @@ jobs:
           echo "Searching for APK files..."
           ls -la app/build/outputs/apk/ 2>/dev/null || echo "No apk directory found"
           
-          # Try release build first
-          if find app/build/outputs/apk/release -name "*.apk" -type f 2>/dev/null | head -1; then
-            APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" -type f | head -1)
-            echo "Found release APK: $APK_PATH"
-          elif find app/build/outputs/apk/debug -name "*.apk" -type f 2>/dev/null | head -1; then
-            APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -1)
-            echo "Found debug APK: $APK_PATH"
-          elif find . -name "*.apk" -type f 2>/dev/null | head -1; then
-            APK_PATH=$(find . -name "*.apk" -type f | head -1)
-            echo "Found APK in workspace: $APK_PATH"
-          else
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" -type f -print -quit 2>/dev/null || true)
+          if [ -z "$APK_PATH" ]; then
+            APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -type f -print -quit 2>/dev/null || true)
+          fi
+          if [ -z "$APK_PATH" ]; then
+            APK_PATH=$(find . -name "*.apk" -type f -print -quit 2>/dev/null || true)
+          fi
+          if [ -z "$APK_PATH" ]; then
             echo "ERROR: No APK file found!"
             ls -R app/build/outputs/ 2>/dev/null || echo "Build outputs not found"
             exit 1
           fi
-          
-          echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
+
+          echo "Found APK: $APK_PATH"
+          echo "APK_PATH=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
