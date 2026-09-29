@@ -7,11 +7,13 @@ on:
   workflow_dispatch:  # Allow manual trigger from GitHub UI
 
 permissions:
-  contents: write  # Allow creating releases
+  contents: write
+  packages: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -29,8 +31,6 @@ jobs:
 
       - name: Build Release APK
         run: ./gradlew assembleRelease
-        env:
-          ANDROID_HOME: /opt/android-sdk
 
       - name: Find APK file
         id: find_apk
@@ -40,13 +40,27 @@ jobs:
             echo "APK not found, trying debug build..."
             APK_PATH=$(find . -name "app-debug.apk" -type f | head -1)
           fi
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: No APK file found!"
+            exit 1
+          fi
           echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
-          echo "Found APK: $APK_PATH"
+          echo "APK file found at: $APK_PATH"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          gh release create ${{ github.ref_name }} "${{ steps.find_apk.outputs.APK_PATH }}" --generate-notes
+          TAG_NAME=${{ github.ref_name }}
+          APK_FILE="${{ steps.find_apk.outputs.APK_PATH }}"
+          
+          # Check if release exists
+          if gh release view "$TAG_NAME" 2>/dev/null; then
+            echo "Release $TAG_NAME already exists, uploading APK..."
+            gh release upload "$TAG_NAME" "$APK_FILE" --clobber
+          else
+            echo "Creating new release $TAG_NAME..."
+            gh release create "$TAG_NAME" "$APK_FILE" --generate-notes
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
