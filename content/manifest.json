@@ -1,0 +1,16 @@
+{
+  "appVersion": "1.0",
+  "stories": [
+    {
+      "id": "Episode01_Aroli_rencontre_Plume",
+      "title": "AROLI : episode 1, renconte avec Plume",
+      "audioFile": "Episode01_Aroli_rencontre_Plume.mp3",
+      "imageFile": "Episode01_Aroli_rencontre_Plume.png",
+      "language": "fr",
+      "ai": true,
+      "publishedDate": "2026-10-02",
+      "ageMin": 3,
+      "ageMax": 8
+    }
+  ]
+}
