@@ -415,7 +415,9 @@ You can also manually trigger a build from GitHub:
 
 ## �📝 License
 
-Aroli is provided as-is for educational and personal use.
+This project is licensed under the GNU General Public License v3.0 (GPLv3).
+You are free to use, modify, and distribute this software under the terms of the GPLv3 license.
+See the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -745,4 +747,6 @@ Le composant `AdminReceiver.kt`:
 
 ## 📝 Licence
 
-Aroli est fourni tel quel à usage éducatif et personnel.
+Ce projet est licencié sous la GNU General Public License v3.0 (GPLv3).
+Vous êtes libre d'utiliser, modifier et distribuer ce logiciel selon les termes de la licence GPLv3.
+Voir le fichier [LICENSE](LICENSE) pour plus de détails.
