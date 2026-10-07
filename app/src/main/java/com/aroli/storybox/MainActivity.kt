@@ -384,6 +384,15 @@ class MainActivity : ComponentActivity() {
                                     lastInteractionTime = System.currentTimeMillis()
                                     showCodeDialog = true 
                                 },
+                                onOpenFolder = { folder ->
+                                    lastInteractionTime = System.currentTimeMillis()
+                                    playerViewModel.openFolder(folder)
+                                },
+                                onGoBack = {
+                                    lastInteractionTime = System.currentTimeMillis()
+                                    playerViewModel.goBack()
+                                },
+                                canNavigateBack = uiState.canNavigateBack,
                                 showBatteryPercentage = showBatteryPercentage,
                                 showTimeDisplay = showTimeDisplay,
                                 currentTime = currentTime,

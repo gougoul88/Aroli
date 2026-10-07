@@ -28,6 +28,7 @@ import com.aroli.storybox.R
  * Kid-facing 3-zone layout: left/right thirds are big prev/next tap targets, middle third shows
  * cover art (or filename fallback) and toggles play/pause on tap. The PIN-gated parent menu is a
  * small always-visible icon in the top-right corner.
+ * Folder support: folders display with different color (orange), tap to enter. A back button appears at the bottom when inside a folder.
  */
 @Composable
 fun StoryBoxScreen(
@@ -38,11 +39,15 @@ fun StoryBoxScreen(
     onNext: () -> Unit,
     onTogglePlayPause: () -> Unit,
     onOpenParentMenu: () -> Unit,
+    onOpenFolder: (StoryItem) -> Unit = {},
+    onGoBack: () -> Unit = {},
+    canNavigateBack: Boolean = false,
     showBatteryPercentage: Boolean = true,
     showTimeDisplay: Boolean = true,
     currentTime: String = "",
 ) {
     val current = stories.getOrNull(currentIndex)
+    val isCurrentAFolder = current?.isFolder ?: false
 
     Box(modifier = Modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxSize()) {
@@ -53,32 +58,111 @@ fun StoryBoxScreen(
                 modifier = Modifier.weight(1f),
             )
 
+            // Middle zone: displays content + optional back button
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
-                    .clickable(enabled = stories.isNotEmpty(), onClick = onTogglePlayPause),
-                contentAlignment = Alignment.Center,
+                    .fillMaxHeight(),
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (current?.imageUri != null) {
-                        AsyncImage(
-                            model = current.imageUri,
-                            contentDescription = current.title,
-                            modifier = Modifier.fillMaxWidth(0.8f),
-                        )
-                    } else {
-                        Text(
-                            text = current?.title ?: "No stories",
-                            style = MaterialTheme.typography.headlineMedium,
-                        )
+                if (canNavigateBack) {
+                    // When inside a folder: split layout with content on top and back button taking bottom space
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        // Content area (top)
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .clickable(
+                                    enabled = stories.isNotEmpty(),
+                                    onClick = {
+                                        if (isCurrentAFolder) {
+                                            current?.let { onOpenFolder(it) }
+                                        } else {
+                                            onTogglePlayPause()
+                                        }
+                                    }
+                                ),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            if (current?.imageUri != null && !isCurrentAFolder) {
+                                AsyncImage(
+                                    model = current.imageUri,
+                                    contentDescription = current.title,
+                                    modifier = Modifier.fillMaxWidth(0.8f),
+                                )
+                            } else {
+                                Text(
+                                    text = current?.title ?: "No stories",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = if (isCurrentAFolder) Color(0xFFFFA500) else Color.Unspecified,  // Orange for folders
+                                )
+                            }
+                            if (unavailableMessage != null) {
+                                Text(
+                                    text = unavailableMessage,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Red,
+                                )
+                            }
+                        }
+
+                        // Back button area (bottom, full width)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.25f)  // Take 25% of remaining height
+                                .clickable(onClick = onGoBack),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.aroli_retour_arrow),
+                                contentDescription = "Back",
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
-                    if (unavailableMessage != null) {
-                        Text(
-                            text = unavailableMessage,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Red,
-                        )
+                } else {
+                    // Normal layout: just content, centered
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(
+                                enabled = stories.isNotEmpty(),
+                                onClick = {
+                                    if (isCurrentAFolder) {
+                                        current?.let { onOpenFolder(it) }
+                                    } else {
+                                        onTogglePlayPause()
+                                    }
+                                }
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        if (current?.imageUri != null && !isCurrentAFolder) {
+                            AsyncImage(
+                                model = current.imageUri,
+                                contentDescription = current.title,
+                                modifier = Modifier.fillMaxWidth(0.8f),
+                            )
+                        } else {
+                            Text(
+                                text = current?.title ?: "No stories",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = if (isCurrentAFolder) Color(0xFFFFA500) else Color.Unspecified,  // Orange for folders
+                            )
+                        }
+                        if (unavailableMessage != null) {
+                            Text(
+                                text = unavailableMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Red,
+                            )
+                        }
                     }
                 }
             }

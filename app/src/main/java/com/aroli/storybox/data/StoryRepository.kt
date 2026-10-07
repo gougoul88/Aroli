@@ -11,6 +11,7 @@ data class StoryItem(
     val publishedDate: String? = null,
     val ageMin: Int? = null,
     val ageMax: Int? = null,
+    val isFolder: Boolean = false,  // True if this is a folder containing stories/subfolders
 )
 
 /**

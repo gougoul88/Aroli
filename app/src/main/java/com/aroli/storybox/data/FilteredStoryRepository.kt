@@ -2,7 +2,7 @@ package com.aroli.storybox.data
 
 /** Wraps another repository, hiding stories that don't match the parent-configured AI/age/language filters. */
 class FilteredStoryRepository(
-    private val delegate: StoryRepository,
+    internal val delegate: StoryRepository,  // Internal for PlayerViewModel to unwrap for navigation
     private val allowAiStories: Boolean,
     private val userAge: Int?,
     private val storyLanguage: String = "fr",  // ISO 639-1 language code
