@@ -610,6 +610,11 @@ En mode Device Owner, le geste Android standard "retour" et le sélecteur de tâ
 
 ## 🎵 Contenu des Histoires
 
+## Mode Local
+
+Vous pouvez avoir des histoires gratuites ici : https://www.litteratureaudio.com/
+
+
 ### Mode Web (GitHub)
 
 Les histoires sont stockées dans le dossier `content/` sur GitHub:
