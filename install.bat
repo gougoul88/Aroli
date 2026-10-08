@@ -67,18 +67,49 @@ echo ========================================
 echo SUCCESS! Aroli installed successfully!
 echo ========================================
 echo.
-echo Next steps:
-echo 1. For Kiosk Mode (requires factory reset):
-echo    - Factory reset your device
-echo    - Skip Google Account during setup
-echo    - Run: adb shell dpm set-device-owner com.aroli.storybox/.AdminReceiver
+
+REM Ask if user wants to setup Kiosk Mode
 echo.
-echo 2. Launch the app:
-echo    - Tap the Aroli icon on your device
-echo    - Or run: adb shell am start -n com.aroli.storybox/.MainActivity
+echo Do you want to setup Kiosk Mode now?
+echo (Note: Device should be factory reset and no Google Account added)
 echo.
-echo 3. Access Parent Settings:
-echo    - Tap the gear icon at top-right
-echo    - Enter PIN: 000000
+choice /C YN /M "Setup Kiosk Mode? (Y/N): "
+if errorlevel 2 goto skip_kiosk
+if errorlevel 1 (
+    echo.
+    echo Setting up Kiosk Mode...
+    adb shell dpm set-device-owner com.aroli.storybox/.AdminReceiver
+    if errorlevel 1 (
+        echo.
+        echo WARNING: Kiosk Mode setup failed.
+        echo Make sure device is factory reset and no Google Account is added.
+    ) else (
+        echo.
+        echo SUCCESS! Kiosk Mode enabled.
+    )
+)
+
+:skip_kiosk
+echo.
+echo Do you want to launch Aroli now?
+choice /C YN /M "Start Aroli? (Y/N): "
+if errorlevel 2 goto skip_launch
+if errorlevel 1 (
+    echo.
+    echo Launching Aroli...
+    adb shell am start -n com.aroli.storybox/.MainActivity
+    echo.
+    echo Aroli is now running!
+)
+
+:skip_launch
+echo.
+echo ========================================
+echo Installation Complete!
+echo ========================================
+echo.
+echo To access Parent Settings:
+echo - Tap the gear icon (top-right)
+echo - Enter PIN: 000000 (default)
 echo.
 pause

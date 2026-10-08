@@ -45,6 +45,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     /** Index currently loaded into the player via setMediaItem+prepare, or null if nothing prepared yet. */
     private var preparedIndex: Int? = null
 
+    /** Parental volume cap (0-100), applied as the ExoPlayer's max output level regardless of device volume. */
+    private var maxVolumePercent: Int = 100
+
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
@@ -130,6 +133,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         } else {
             player.play()
         }
+    }
+
+    /** Caps playback output so kids can't exceed a parent-set loudness regardless of the device's hardware volume. */
+    fun setMaxVolumePercent(percent: Int) {
+        maxVolumePercent = percent.coerceIn(0, 100)
+        player.volume = maxVolumePercent / 100f
     }
 
     fun next() = navigate(+1)

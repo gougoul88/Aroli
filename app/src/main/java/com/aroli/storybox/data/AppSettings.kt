@@ -41,6 +41,7 @@ class AppSettings(private val context: Context) {
         val NIGHT_MODE_END = stringPreferencesKey("night_mode_end")  // Night mode end time (default "07:00")
         val SHOW_TIME_DISPLAY = booleanPreferencesKey("show_time_display")  // Show/hide time display (default true)
         val SYNC_PERIOD_DAYS = intPreferencesKey("sync_period_days")  // Web mode: sync cache every N days (default 1)
+        val MAX_VOLUME_PERCENT = intPreferencesKey("max_volume_percent")  // Parental volume cap, 0-100 (default 100 = no cap)
     }
 
     val mode: Flow<ContentMode> = context.dataStore.data.map { prefs ->
@@ -70,6 +71,8 @@ class AppSettings(private val context: Context) {
     val showTimeDisplay: Flow<Boolean> = context.dataStore.data.map { it[Keys.SHOW_TIME_DISPLAY] ?: true }  // Default to true
 
     val syncPeriodDays: Flow<Int> = context.dataStore.data.map { it[Keys.SYNC_PERIOD_DAYS] ?: 1 }  // Default to 1 day
+
+    val maxVolumePercent: Flow<Int> = context.dataStore.data.map { it[Keys.MAX_VOLUME_PERCENT] ?: 100 }  // Default to 100 (no cap)
 
     suspend fun setMode(mode: ContentMode) {
         context.dataStore.edit { it[Keys.MODE] = mode.name }
@@ -129,6 +132,10 @@ class AppSettings(private val context: Context) {
 
     suspend fun setSyncPeriodDays(days: Int) {
         context.dataStore.edit { it[Keys.SYNC_PERIOD_DAYS] = days }
+    }
+
+    suspend fun setMaxVolumePercent(percent: Int) {
+        context.dataStore.edit { it[Keys.MAX_VOLUME_PERCENT] = percent.coerceIn(0, 100) }
     }
 
     /** Clears the on-disk manifest + downloaded-audio cache used by GitHubContentRepository. */

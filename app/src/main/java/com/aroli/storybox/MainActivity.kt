@@ -86,6 +86,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var appSettings: AppSettings
     private lateinit var initialRepository: FilteredStoryRepository
     private var initialLastIndex: Int = 0
+    private var initialMaxVolumePercent: Int = 100
 
     private val pickFolderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
@@ -109,6 +110,7 @@ class MainActivity : ComponentActivity() {
         var initialStoryLanguage = "fr"
         var lastIndexOnStartup = 0
         var initialSyncPeriodDays = 1
+        var initialMaxVolumePercent = 100
         runBlocking {
             initialMode = appSettings.mode.first()
             initialFolderUri = appSettings.folderUri.first()
@@ -117,6 +119,7 @@ class MainActivity : ComponentActivity() {
             initialStoryLanguage = appSettings.storyLanguage.first()
             lastIndexOnStartup = appSettings.lastIndex.first()
             initialSyncPeriodDays = appSettings.syncPeriodDays.first()
+            initialMaxVolumePercent = appSettings.maxVolumePercent.first()
         }
         
         // Pre-load the repository with initial settings before setContent
@@ -138,6 +141,7 @@ class MainActivity : ComponentActivity() {
         // Store in class members for access in setContent lambda
         this.initialRepository = initialRepository
         this.initialLastIndex = lastIndexOnStartup
+        this.initialMaxVolumePercent = initialMaxVolumePercent
 
         // Kid-facing kiosk screen: ignore system back gesture (Phase 5 adds screen pinning on top of this).
         onBackPressedDispatcher.addCallback(this) { /* no-op */ }
@@ -156,6 +160,7 @@ class MainActivity : ComponentActivity() {
                     val nightModeEnd by appSettings.nightModeEnd.collectAsStateWithLifecycle(initialValue = "07:00")
                     val showTimeDisplay by appSettings.showTimeDisplay.collectAsStateWithLifecycle(initialValue = true)
                     val syncPeriodDays by appSettings.syncPeriodDays.collectAsStateWithLifecycle(initialValue = 1)
+                    val maxVolumePercent by appSettings.maxVolumePercent.collectAsStateWithLifecycle(initialValue = initialMaxVolumePercent)
                     val parentCode by appSettings.parentCode.collectAsStateWithLifecycle(initialValue = DEFAULT_PARENT_CODE)
                     val uiState by playerViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -172,6 +177,11 @@ class MainActivity : ComponentActivity() {
                     // Load initial repository on first composition to display stories (shows LoadingScreen while loading)
                     LaunchedEffect(Unit) {
                         playerViewModel.load(initialRepository, initialLastIndex)
+                    }
+
+                    // Apply the parental volume cap whenever it changes.
+                    LaunchedEffect(maxVolumePercent) {
+                        playerViewModel.setMaxVolumePercent(maxVolumePercent)
                     }
 
                     // Update time display every minute (or every second if preferred)
@@ -304,6 +314,8 @@ class MainActivity : ComponentActivity() {
                                 onShowTimeDisplayChange = { show -> lifecycleScope.launch { appSettings.setShowTimeDisplay(show) } },
                                 syncPeriodDays = syncPeriodDays,
                                 onSyncPeriodDaysChange = { days -> lifecycleScope.launch { appSettings.setSyncPeriodDays(days) } },
+                                maxVolumePercent = maxVolumePercent,
+                                onMaxVolumePercentChange = { percent -> lifecycleScope.launch { appSettings.setMaxVolumePercent(percent) } },
                                 onChangeCode = { code -> lifecycleScope.launch { appSettings.setParentCode(code) } },
                                 onQuitApp = {
                                     lifecycleScope.launch {

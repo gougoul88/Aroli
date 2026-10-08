@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +63,8 @@ fun ParentSettingsScreen(
     onShowTimeDisplayChange: (Boolean) -> Unit,
     syncPeriodDays: Int,
     onSyncPeriodDaysChange: (Int) -> Unit,
+    maxVolumePercent: Int,
+    onMaxVolumePercentChange: (Int) -> Unit,
     onChangeCode: (String) -> Unit,
     onQuitApp: () -> Unit,
     onClose: () -> Unit,
@@ -273,6 +276,37 @@ fun ParentSettingsScreen(
                 }
                 Text(
                     "Display the battery percentage next to the battery icon",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 9.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+            }
+        }
+
+        // Maximum Volume Limit - caps playback loudness regardless of the device's hardware volume buttons
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    "Maximum Volume: $maxVolumePercent%",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Slider(
+                    value = maxVolumePercent.toFloat(),
+                    onValueChange = { onMaxVolumePercentChange(it.toInt()) },
+                    valueRange = 10f..100f,
+                    steps = 17,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "Limits how loud stories can play, to help protect children's hearing",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 9.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

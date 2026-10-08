@@ -80,9 +80,9 @@ jobs:
             sleep 2
           fi
           
-          # Create new release with APK
+          # Create new release with APK and install scripts
           echo "Creating new release..."
-          gh release create "$TAG_NAME" "$APK_FILE" --generate-notes --title "Aroli Release $TAG_NAME"
+          gh release create "$TAG_NAME" "$APK_FILE" "install.bat" "install.sh" --generate-notes --title "Aroli Release $TAG_NAME"
           
           echo "✅ Release created successfully!"
           echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/$TAG_NAME"
