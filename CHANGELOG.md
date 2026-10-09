@@ -2,6 +2,33 @@
 
 All notable changes to Aroli will be documented in this file.
 
+## [1.4] - TBD
+
+### ✨ Coming Soon
+
+- Under development...
+
+---
+
+## [1.3] - 2026-10-09
+
+### ✨ New Features
+
+- **AI Story Filtering in Manage Stories**: Parents can now control whether AI-generated stories are shown
+  - Checkbox "Show AI-Generated Stories" in Manage Stories screen (same level as Age and Language)
+  - Checked by default (shows all stories)
+  - Unchecked (hides AI-generated stories)
+  - Filter indicator in counter showing "AI: Yes/No"
+
+### 🔧 Technical Changes
+
+- Added AI-generated story filtering in ManageStoriesScreen
+- Stories marked with "ai: true" in manifest.json can be filtered
+- Story Manager web tool displays 🤖 AI badge for easy identification
+- Improved filter feedback with AI status in counter
+
+---
+
 ## [1.2] - 2026-10-09
 
 ### ✨ New Features
