@@ -37,10 +37,16 @@ All notable changes to Aroli will be documented in this file.
 
 ### 🔧 Technical Changes
 
+- **AI Story Management Moved to Story Manager**: 
+  - Removed "Allow AI Generated Stories" toggle from ParentSettings
+  - AI status is now marked and managed in the Story Manager web tool
+  - All stories marked in the manifest are shown (no filtering)
+  - Story Manager displays AI badge (🤖 AI) next to AI-generated stories
+  
 - Removed time-based sync period configuration
 - Implemented on-demand manifest refresh
 - Added `FolderNavigableRepository` interface for folder navigation
-- Improved story filtering logic with age range support
+- Improved story filtering logic with age range support (removed AI filter)
 - Refactored `ManageStoriesScreen` for better UX
 - Enhanced GitHub workflow to include install scripts in releases
 

@@ -69,6 +69,7 @@ fun ManageStoriesScreen(
     var ageInput by remember(userAge) { mutableStateOf(userAge?.toString() ?: "") }
     val childAge = ageInput.toIntOrNull() ?: 0
     var showLanguageMenu by remember { mutableStateOf(false) }
+    var showAiStories by remember { mutableStateOf(true) }  // Filter to show/hide AI stories
     
     // Filter stories by age: show only those where ageMin <= childAge <= ageMax
     val ageFilteredCatalog = catalog.filter { story ->
@@ -80,6 +81,11 @@ fun ManageStoriesScreen(
             val maxOk = story.ageMax?.let { childAge <= it } ?: true
             minOk && maxOk
         }
+    }
+    
+    // Apply AI filter
+    val filteredCatalog = ageFilteredCatalog.filter { story ->
+        showAiStories || !story.isAiGenerated
     }
 
     Column(
@@ -109,66 +115,87 @@ fun ManageStoriesScreen(
         ) {
             // Age and Language filters Card
             Card(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    // Age filter - number input
-                    OutlinedTextField(
-                        value = ageInput,
-                        onValueChange = { text ->
-                            ageInput = text.filter(Char::isDigit).take(2)
-                            onUserAgeChange(ageInput.toIntOrNull())
-                        },
-                        label = { Text("Child Age") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-
-                    // Language filter - proper exposed dropdown
-                    val languages = listOf("fr" to "Français", "en" to "English", "de" to "Deutsch")
-                    val selectedLanguageLabel = languages.firstOrNull { it.first == storyLanguage }?.second ?: storyLanguage
-                    ExposedDropdownMenuBox(
-                        expanded = showLanguageMenu,
-                        onExpandedChange = { showLanguageMenu = it },
-                        modifier = Modifier.weight(1f),
+                    // First row: Age and Language filters
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        // Age filter - number input
                         OutlinedTextField(
-                            value = selectedLanguageLabel,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Language") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLanguageMenu) },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth(),
+                            value = ageInput,
+                            onValueChange = { text ->
+                                ageInput = text.filter(Char::isDigit).take(2)
+                                onUserAgeChange(ageInput.toIntOrNull())
+                            },
+                            label = { Text("Child Age") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
                         )
-                        ExposedDropdownMenu(
+
+                        // Language filter - proper exposed dropdown
+                        val languages = listOf("fr" to "Français", "en" to "English", "de" to "Deutsch")
+                        val selectedLanguageLabel = languages.firstOrNull { it.first == storyLanguage }?.second ?: storyLanguage
+                        ExposedDropdownMenuBox(
                             expanded = showLanguageMenu,
-                            onDismissRequest = { showLanguageMenu = false },
+                            onExpandedChange = { showLanguageMenu = it },
+                            modifier = Modifier.weight(1f),
                         ) {
-                            languages.forEach { (code, label) ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        onStoryLanguageChange(code)
-                                        showLanguageMenu = false
-                                    },
-                                )
+                            OutlinedTextField(
+                                value = selectedLanguageLabel,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Language") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLanguageMenu) },
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth(),
+                            )
+                            ExposedDropdownMenu(
+                                expanded = showLanguageMenu,
+                                onDismissRequest = { showLanguageMenu = false },
+                            ) {
+                                languages.forEach { (code, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = {
+                                            onStoryLanguageChange(code)
+                                            showLanguageMenu = false
+                                        },
+                                    )
+                                }
                             }
                         }
+                    }
+                    
+                    // Second row: AI Stories checkbox
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = showAiStories,
+                            onCheckedChange = { showAiStories = it },
+                        )
+                        Text(
+                            "Show AI-Generated Stories",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                 }
             }
 
             // Info text
             Text(
-                "Age filter: ${if (childAge == 0) "Off" else "$childAge years"} | ${ageFilteredCatalog.filter { it.id in selectedIds }.size}/${ageFilteredCatalog.size} selected",
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = 11.sp,
+            "Age filter: ${if (childAge == 0) "Off" else "$childAge years"} | AI: ${if (showAiStories) "Yes" else "No"} | ${filteredCatalog.filter { it.id in selectedIds }.size}/${filteredCatalog.size} selected",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 12.dp),
             )
@@ -183,7 +210,7 @@ fun ManageStoriesScreen(
                 ) {
                     CircularProgressIndicator()
                 }
-            } else if (ageFilteredCatalog.isEmpty()) {
+            } else if (filteredCatalog.isEmpty()) {
                 Text(
                     "No stories match this age range",
                     style = MaterialTheme.typography.bodyMedium,
@@ -192,7 +219,7 @@ fun ManageStoriesScreen(
                 )
             } else {
                 // Simple list of stories with checkboxes
-                ageFilteredCatalog.forEach { story ->
+                filteredCatalog.forEach { story ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -242,7 +269,7 @@ fun ManageStoriesScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(
-                onClick = { selectedIds = ageFilteredCatalog.map { it.id }.toSet() },
+                onClick = { selectedIds = filteredCatalog.map { it.id }.toSet() },
                 modifier = Modifier.weight(1f),
             ) {
                 Text("Select All")

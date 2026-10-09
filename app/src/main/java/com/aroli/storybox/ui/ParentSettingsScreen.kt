@@ -43,8 +43,6 @@ fun ParentSettingsScreen(
     onModeChange: (ContentMode) -> Unit,
     onPickFolder: () -> Unit,
     onClearCache: () -> Unit,
-    allowAiStories: Boolean,
-    onAllowAiStoriesChange: (Boolean) -> Unit,
     sleepTimeoutMinutes: Int,
     onSleepTimeoutChange: (Int) -> Unit,
     showBatteryPercentage: Boolean,
@@ -70,6 +68,8 @@ fun ParentSettingsScreen(
     var sleepTimeoutText by remember(sleepTimeoutMinutes) { mutableStateOf(sleepTimeoutMinutes.toString()) }
     var nightModeStartText by remember(nightModeStart) { mutableStateOf(nightModeStart) }
     var nightModeEndText by remember(nightModeEnd) { mutableStateOf(nightModeEnd) }
+
+    // Note: AI story filtering is now managed in the Story Manager web tool
 
     Column(
         modifier = Modifier
@@ -134,26 +134,21 @@ fun ParentSettingsScreen(
                     }
                 }
 
-                // AI stories filter - only in WEB mode
+                // Selective story download/visibility - only in WEB mode
                 if (mode == ContentMode.WEB) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(checked = allowAiStories, onCheckedChange = onAllowAiStoriesChange)
-                        Text(
-                            "Allow AI-Generated Stories",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-
-                    // Selective story download/visibility - only in WEB mode
                     Button(
                         onClick = onManageStories,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Manage Stories")
                     }
+                    Text(
+                        "Use Story Manager to mark stories as AI-generated or filter by age/language",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 9.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
                 }
             }
         }

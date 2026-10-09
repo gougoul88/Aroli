@@ -107,7 +107,6 @@ class MainActivity : ComponentActivity() {
         // Preload all initial settings synchronously to avoid "No stories" flicker on startup
         var initialMode = ContentMode.WEB
         var initialFolderUri: String? = null
-        var initialAllowAiStories = true
         var initialUserAge: Int? = null
         var initialStoryLanguage = "fr"
         var lastIndexOnStartup = 0
@@ -116,7 +115,6 @@ class MainActivity : ComponentActivity() {
         runBlocking {
             initialMode = appSettings.mode.first()
             initialFolderUri = appSettings.folderUri.first()
-            initialAllowAiStories = appSettings.allowAiStories.first()
             initialUserAge = appSettings.userAge.first()
             initialStoryLanguage = appSettings.storyLanguage.first()
             lastIndexOnStartup = appSettings.lastIndex.first()
@@ -135,8 +133,7 @@ class MainActivity : ComponentActivity() {
         
         val initialRepository = FilteredStoryRepository(
             baseRepository,
-            initialAllowAiStories,
-            null,
+            initialUserAge,
             initialStoryLanguage
         )
         
@@ -153,7 +150,6 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val mode by appSettings.mode.collectAsStateWithLifecycle(initialValue = initialMode)
                     val folderUri by appSettings.folderUri.collectAsStateWithLifecycle(initialValue = initialFolderUri)
-                    val allowAiStories by appSettings.allowAiStories.collectAsStateWithLifecycle(initialValue = initialAllowAiStories)
                     val userAge by appSettings.userAge.collectAsStateWithLifecycle(initialValue = initialUserAge)
                     val storyLanguage by appSettings.storyLanguage.collectAsStateWithLifecycle(initialValue = initialStoryLanguage)
                     val sleepTimeoutMinutes by appSettings.sleepTimeoutMinutes.collectAsStateWithLifecycle(initialValue = 10)
@@ -233,7 +229,7 @@ class MainActivity : ComponentActivity() {
                     var downloadUrl by remember { mutableStateOf<String?>(null) }
 
                     // (Re)loads the active repository whenever mode/folder/filters change, restoring the last bookmark.
-                    LaunchedEffect(mode, folderUri, allowAiStories, storyLanguage, selectedStoryIds, forceReloadKey) {
+                    LaunchedEffect(mode, folderUri, storyLanguage, selectedStoryIds, forceReloadKey) {
                         val base = if (mode == ContentMode.LOCAL && folderUri != null) {
                             LocalFolderRepository(applicationContext, Uri.parse(folderUri))
                         } else {
@@ -241,7 +237,7 @@ class MainActivity : ComponentActivity() {
                             ghRepo.setSelectedStoryIds(selectedStoryIds)
                             ghRepo
                         }
-                        val repository = FilteredStoryRepository(base, allowAiStories, null, storyLanguage)
+                        val repository = FilteredStoryRepository(base, userAge, storyLanguage)
                         val startIndex = appSettings.lastIndex.first()
                         playerViewModel.load(repository, startIndex)
                     }
@@ -256,7 +252,7 @@ class MainActivity : ComponentActivity() {
                                 ghRepo.setSelectedStoryIds(selectedStoryIds)
                                 ghRepo
                             }
-                            val repository = FilteredStoryRepository(base, allowAiStories, null, storyLanguage)
+                            val repository = FilteredStoryRepository(base, userAge, storyLanguage)
                             playerViewModel.load(repository, uiState.currentIndex)
                         }
                     }
@@ -326,8 +322,6 @@ class MainActivity : ComponentActivity() {
                                     appSettings.clearCache()
                                     forceReloadKey += 1  // Trigger repository reload with fresh data
                                 },
-                                allowAiStories = allowAiStories,
-                                onAllowAiStoriesChange = { allow -> lifecycleScope.launch { appSettings.setAllowAiStories(allow) } },
                                 sleepTimeoutMinutes = sleepTimeoutMinutes,
                                 onSleepTimeoutChange = { minutes -> lifecycleScope.launch { appSettings.setSleepTimeoutMinutes(minutes) } },
                                 showBatteryPercentage = showBatteryPercentage,
