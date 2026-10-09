@@ -18,13 +18,14 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import com.aroli.storybox.data.StoryItem
 import com.aroli.storybox.data.StoryRepository
-import com.aroli.storybox.data.LocalFolderRepository
+import com.aroli.storybox.data.FolderNavigableRepository
 import com.aroli.storybox.data.FilteredStoryRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.pow
 
 data class PlayerUiState(
     val stories: List<StoryItem> = emptyList(),
@@ -40,7 +41,7 @@ data class PlayerUiState(
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     private var repository: StoryRepository? = null
-    private var localFolderRepository: LocalFolderRepository? = null  // For folder navigation
+    private var folderNavigableRepository: FolderNavigableRepository? = null  // For folder navigation (local SAF or web virtual folders)
 
     /** Index currently loaded into the player via setMediaItem+prepare, or null if nothing prepared yet. */
     private var preparedIndex: Int? = null
@@ -95,12 +96,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     /** Loads [repository]'s story list and starts playback at [startIndex] (e.g. a restored per-profile bookmark). */
     fun load(repository: StoryRepository, startIndex: Int = 0) {
         this.repository = repository
-        this.localFolderRepository = extractLocalFolderRepository(repository)
+        this.folderNavigableRepository = extractFolderNavigableRepository(repository)
         _uiState.update { it.copy(isLoading = true) }  // Mark as loading
         viewModelScope.launch {
             val stories = repository.list()
             val index = startIndex.coerceIn(0, (stories.size - 1).coerceAtLeast(0))
-            val canNavigateBack = localFolderRepository?.canNavigateBack() ?: false
+            val canNavigateBack = folderNavigableRepository?.canNavigateBack() ?: false
             _uiState.update { it.copy(stories = stories, currentIndex = index, isLoading = false, canNavigateBack = canNavigateBack) }  // Mark loading complete
             if (stories.isNotEmpty()) preparePlayback(index)
         }
@@ -109,9 +110,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     /** Initializes the player with preloaded stories and prepares playback at [startIndex]. Used for startup optimization. */
     fun loadWithInitialStories(repository: StoryRepository, stories: List<StoryItem>, startIndex: Int = 0) {
         this.repository = repository
-        this.localFolderRepository = extractLocalFolderRepository(repository)
+        this.folderNavigableRepository = extractFolderNavigableRepository(repository)
         val index = startIndex.coerceIn(0, (stories.size - 1).coerceAtLeast(0))
-        val canNavigateBack = localFolderRepository?.canNavigateBack() ?: false
+        val canNavigateBack = folderNavigableRepository?.canNavigateBack() ?: false
         _uiState.value = PlayerUiState(stories = stories, currentIndex = index, isLoading = false, canNavigateBack = canNavigateBack)  // Already loaded
         if (stories.isNotEmpty()) {
             viewModelScope.launch {
@@ -135,10 +136,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Caps playback output so kids can't exceed a parent-set loudness regardless of the device's hardware volume. */
+    /** Caps playback output so kids can't exceed a parent-set loudness regardless of the device's hardware volume.
+     * Uses exponential (quadratic) scaling so small slider changes produce more perceptible volume differences. */
     fun setMaxVolumePercent(percent: Int) {
         maxVolumePercent = percent.coerceIn(0, 100)
-        player.volume = maxVolumePercent / 100f
+        // Apply quadratic progression: (percent/100)^2 for more perceptible changes at lower volumes.
+        // 100% -> 1.0, 50% -> 0.25 (4x quieter), 30% -> 0.09 (11x quieter), 10% -> 0.01 (100x quieter)
+        val logVolume = (maxVolumePercent / 100f).pow(2)
+        player.volume = logVolume
     }
 
     fun next() = navigate(+1)
@@ -147,18 +152,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Enter a folder. Called when tapping a folder item. */
     fun openFolder(folder: StoryItem) {
-        if (!folder.isFolder || localFolderRepository == null) return
+        if (!folder.isFolder || folderNavigableRepository == null) return
         viewModelScope.launch {
-            localFolderRepository!!.navigateInto(folder)
+            folderNavigableRepository!!.navigateInto(folder)
             reloadStories()
         }
     }
 
     /** Exit current folder and go back to parent. */
     fun goBack() {
-        if (localFolderRepository == null) return
+        if (folderNavigableRepository == null) return
         viewModelScope.launch {
-            localFolderRepository!!.navigateBack()
+            folderNavigableRepository!!.navigateBack()
             reloadStories()
         }
     }
@@ -167,7 +172,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private suspend fun reloadStories() {
         val repo = repository ?: return
         val stories = repo.list()
-        val canNavigateBack = localFolderRepository?.canNavigateBack() ?: false
+        val canNavigateBack = folderNavigableRepository?.canNavigateBack() ?: false
         val index = 0  // Always start at first item when entering a folder
         preparedIndex = null  // Stale - belongs to the previous folder's list
         _uiState.update { it.copy(stories = stories, currentIndex = index, canNavigateBack = canNavigateBack) }
@@ -210,11 +215,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         super.onCleared()
     }
 
-    /** Extract LocalFolderRepository from repository, unwrapping FilteredStoryRepository if needed. */
-    private fun extractLocalFolderRepository(repository: StoryRepository): LocalFolderRepository? {
+    /** Extract a FolderNavigableRepository from repository, unwrapping FilteredStoryRepository if needed. */
+    private fun extractFolderNavigableRepository(repository: StoryRepository): FolderNavigableRepository? {
         return when (repository) {
-            is LocalFolderRepository -> repository
-            is FilteredStoryRepository -> extractLocalFolderRepository(repository.delegate)
+            is FolderNavigableRepository -> repository
+            is FilteredStoryRepository -> extractFolderNavigableRepository(repository.delegate)
             else -> null
         }
     }

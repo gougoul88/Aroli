@@ -20,7 +20,7 @@ private data class DocEntry(val documentId: String, val name: String, val isDire
 class LocalFolderRepository(
     private val context: Context,
     private val folderUri: Uri,
-) : StoryRepository {
+) : StoryRepository, FolderNavigableRepository {
 
     /** Current position in the folder tree. Starts at root, updated by navigateInto/navigateBack. */
     private var currentFolderUri: Uri = folderUri
@@ -105,21 +105,21 @@ class LocalFolderRepository(
     }
 
     /** Enter a folder. Expects a StoryItem with isFolder=true. */
-    suspend fun navigateInto(folder: StoryItem) {
+    override suspend fun navigateInto(folder: StoryItem) {
         if (!folder.isFolder) return
         navigationHistory.add(currentFolderUri)
         currentFolderUri = Uri.parse(folder.id)
     }
 
     /** Exit current folder and go back to parent. */
-    suspend fun navigateBack() {
+    override suspend fun navigateBack() {
         if (navigationHistory.isNotEmpty()) {
             currentFolderUri = navigationHistory.removeAt(navigationHistory.size - 1)
         }
     }
 
     /** True if we are inside a subfolder (not at root). */
-    fun canNavigateBack(): Boolean = navigationHistory.isNotEmpty()
+    override fun canNavigateBack(): Boolean = navigationHistory.isNotEmpty()
 
     override suspend fun resolvePlayableUri(item: StoryItem): String = item.audioUri
 }

@@ -65,6 +65,7 @@ fun ParentSettingsScreen(
     onSyncPeriodDaysChange: (Int) -> Unit,
     maxVolumePercent: Int,
     onMaxVolumePercentChange: (Int) -> Unit,
+    onManageStories: () -> Unit,
     onChangeCode: (String) -> Unit,
     onQuitApp: () -> Unit,
     onClose: () -> Unit,
@@ -179,6 +180,14 @@ fun ParentSettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 8.dp),
                         )
+                    }
+
+                    // Selective story download/visibility - only in WEB mode
+                    Button(
+                        onClick = onManageStories,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Manage Stories")
                     }
 
                     // Age filter - only in WEB mode

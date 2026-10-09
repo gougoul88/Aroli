@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -42,6 +43,7 @@ class AppSettings(private val context: Context) {
         val SHOW_TIME_DISPLAY = booleanPreferencesKey("show_time_display")  // Show/hide time display (default true)
         val SYNC_PERIOD_DAYS = intPreferencesKey("sync_period_days")  // Web mode: sync cache every N days (default 1)
         val MAX_VOLUME_PERCENT = intPreferencesKey("max_volume_percent")  // Parental volume cap, 0-100 (default 100 = no cap)
+        val SELECTED_STORY_IDS = stringSetPreferencesKey("selected_story_ids")  // Web mode: parent-picked subset. Key absent = not configured yet (show all).
     }
 
     val mode: Flow<ContentMode> = context.dataStore.data.map { prefs ->
@@ -73,6 +75,9 @@ class AppSettings(private val context: Context) {
     val syncPeriodDays: Flow<Int> = context.dataStore.data.map { it[Keys.SYNC_PERIOD_DAYS] ?: 1 }  // Default to 1 day
 
     val maxVolumePercent: Flow<Int> = context.dataStore.data.map { it[Keys.MAX_VOLUME_PERCENT] ?: 100 }  // Default to 100 (no cap)
+
+    // Null = parent hasn't configured a selection yet - treat as "show all" (backward compatible default).
+    val selectedStoryIds: Flow<Set<String>?> = context.dataStore.data.map { it[Keys.SELECTED_STORY_IDS] }
 
     suspend fun setMode(mode: ContentMode) {
         context.dataStore.edit { it[Keys.MODE] = mode.name }
@@ -136,6 +141,10 @@ class AppSettings(private val context: Context) {
 
     suspend fun setMaxVolumePercent(percent: Int) {
         context.dataStore.edit { it[Keys.MAX_VOLUME_PERCENT] = percent.coerceIn(0, 100) }
+    }
+
+    suspend fun setSelectedStoryIds(ids: Set<String>) {
+        context.dataStore.edit { it[Keys.SELECTED_STORY_IDS] = ids }
     }
 
     /** Clears the on-disk manifest + downloaded-audio cache used by GitHubContentRepository. */

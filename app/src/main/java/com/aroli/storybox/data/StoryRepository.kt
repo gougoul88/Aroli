@@ -12,6 +12,7 @@ data class StoryItem(
     val ageMin: Int? = null,
     val ageMax: Int? = null,
     val isFolder: Boolean = false,  // True if this is a folder containing stories/subfolders
+    val folder: String? = null,  // Web mode virtual folder path (e.g. "Classiques/Animaux"), null = root level
 )
 
 /**
