@@ -12,6 +12,18 @@
       "ageMin": 3,
       "ageMax": 8,
       "folder": null
+    },
+     {
+      "id": "Episode02_Aroli_rencontre_Toupi",
+      "title": "AROLI : episode 2, renconte avec Toupi",
+      "audioFile": "Episode02_Aroli_rencontre_Toupi.mp3",
+      "imageFile": "Episode02_Aroli_rencontre_Toupi.png",
+      "language": "fr",
+      "ai": true,
+      "publishedDate": "2026-10-09",
+      "ageMin": 3,
+      "ageMax": 8,
+      "folder": null
     }
   ]
 }
