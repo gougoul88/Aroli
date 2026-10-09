@@ -309,6 +309,8 @@ class MainActivity : ComponentActivity() {
                                 isLoading = manageStoriesLoading,
                                 userAge = userAge,
                                 onUserAgeChange = { age -> lifecycleScope.launch { appSettings.setUserAge(age) } },
+                                storyLanguage = storyLanguage,
+                                onStoryLanguageChange = { lang -> lifecycleScope.launch { appSettings.setStoryLanguage(lang) } },
                                 onSave = { ids ->
                                     lifecycleScope.launch { appSettings.setSelectedStoryIds(ids) }
                                     showManageStories = false
@@ -326,8 +328,6 @@ class MainActivity : ComponentActivity() {
                                 },
                                 allowAiStories = allowAiStories,
                                 onAllowAiStoriesChange = { allow -> lifecycleScope.launch { appSettings.setAllowAiStories(allow) } },
-                                storyLanguage = storyLanguage,
-                                onStoryLanguageChange = { lang -> lifecycleScope.launch { appSettings.setStoryLanguage(lang) } },
                                 sleepTimeoutMinutes = sleepTimeoutMinutes,
                                 onSleepTimeoutChange = { minutes -> lifecycleScope.launch { appSettings.setSleepTimeoutMinutes(minutes) } },
                                 showBatteryPercentage = showBatteryPercentage,

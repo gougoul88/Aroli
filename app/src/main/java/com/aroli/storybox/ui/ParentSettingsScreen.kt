@@ -45,8 +45,6 @@ fun ParentSettingsScreen(
     onClearCache: () -> Unit,
     allowAiStories: Boolean,
     onAllowAiStoriesChange: (Boolean) -> Unit,
-    storyLanguage: String,
-    onStoryLanguageChange: (String) -> Unit,
     sleepTimeoutMinutes: Int,
     onSleepTimeoutChange: (Int) -> Unit,
     showBatteryPercentage: Boolean,
@@ -155,43 +153,6 @@ fun ParentSettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Manage Stories")
-                    }
-
-                    // Language filter - only in WEB mode
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Story Language",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            listOf("fr" to "French", "en" to "English", "de" to "German").forEach { (langCode, langName) ->
-                                Button(
-                                    onClick = { onStoryLanguageChange(langCode) },
-                                    modifier = Modifier.weight(1f),
-                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                        containerColor = if (storyLanguage == langCode)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.surface,
-                                    ),
-                                ) {
-                                    Text(
-                                        langName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (storyLanguage == langCode)
-                                            MaterialTheme.colorScheme.onPrimary
-                                        else
-                                            MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                            }
-                        }
                     }
                 }
             }
