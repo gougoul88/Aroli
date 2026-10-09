@@ -8,23 +8,23 @@ This guide explains how to create and share Aroli releases with users.
 
 Edit `app/build.gradle.kts`:
 ```kotlin
-versionCode = 3          // Always increment
-versionName = "1.2"      // Use semantic versioning (major.minor.patch)
+versionCode = 4          // Always increment
+versionName = "1.3"      // Use semantic versioning (major.minor.patch)
 ```
 
 ### 2. Commit Changes
 
 ```bash
 git add app/build.gradle.kts CHANGELOG.md
-git commit -m "Release v1.2: Add selective story management and age filtering"
+git commit -m "Release v1.3: Add AI story filtering in Manage Stories"
 git push origin main
 ```
 
 ### 3. Create Release Tag
 
 ```bash
-git tag v1.2
-git push origin v1.2
+git tag v1.3
+git push origin v1.3
 ```
 
 ✅ **Done!** GitHub Actions will automatically:
