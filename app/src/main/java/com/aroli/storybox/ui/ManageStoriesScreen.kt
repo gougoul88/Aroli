@@ -7,8 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
@@ -79,14 +83,13 @@ fun ManageStoriesScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize(),
     ) {
-        // Header
+        // Header with close button (fixed at top)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -96,135 +99,147 @@ fun ManageStoriesScreen(
             }
         }
         
-        // Age and Language filters Card - side by side
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Age filter - number input
-                OutlinedTextField(
-                    value = ageInput,
-                    onValueChange = { text ->
-                        ageInput = text.filter(Char::isDigit).take(2)
-                        onUserAgeChange(ageInput.toIntOrNull())
-                    },
-                    label = { Text("Child Age") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-
-                // Language filter - proper exposed dropdown
-                val languages = listOf("fr" to "Français", "en" to "English", "de" to "Deutsch")
-                val selectedLanguageLabel = languages.firstOrNull { it.first == storyLanguage }?.second ?: storyLanguage
-                ExposedDropdownMenuBox(
-                    expanded = showLanguageMenu,
-                    onExpandedChange = { showLanguageMenu = it },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    OutlinedTextField(
-                        value = selectedLanguageLabel,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Language") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLanguageMenu) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth(),
-                    )
-                    ExposedDropdownMenu(
-                        expanded = showLanguageMenu,
-                        onDismissRequest = { showLanguageMenu = false },
-                    ) {
-                        languages.forEach { (code, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = {
-                                    onStoryLanguageChange(code)
-                                    showLanguageMenu = false
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        Text(
-            "Set age to filter appropriate stories (0-18)",
-            style = MaterialTheme.typography.bodySmall,
-            fontSize = 9.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        
-        Text(
-            "Choose which stories to show and download (${ageFilteredCatalog.filter { it.id in selectedIds }.size}/${ageFilteredCatalog.size} selected).",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        // Stories list - scrollable content
-        if (isLoading) {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            val grouped = ageFilteredCatalog.groupBy { it.folder ?: "" }.toSortedMap()
-            LazyColumn(modifier = Modifier
+        // Scrollable content area
+        Column(
+            modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()) {
-                grouped.forEach { (folderPath, stories) ->
-                    item(key = "header_$folderPath") {
-                        Text(
-                            text = folderPath.ifEmpty { "General" },
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-                        )
-                    }
-                    items(stories, key = { it.id }) { story ->
-                        Row(
+                .fillMaxWidth()
+                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(horizontal = 24.dp),
+        ) {
+            // Age and Language filters Card
+            Card(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // Age filter - number input
+                    OutlinedTextField(
+                        value = ageInput,
+                        onValueChange = { text ->
+                            ageInput = text.filter(Char::isDigit).take(2)
+                            onUserAgeChange(ageInput.toIntOrNull())
+                        },
+                        label = { Text("Child Age") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    // Language filter - proper exposed dropdown
+                    val languages = listOf("fr" to "Français", "en" to "English", "de" to "Deutsch")
+                    val selectedLanguageLabel = languages.firstOrNull { it.first == storyLanguage }?.second ?: storyLanguage
+                    ExposedDropdownMenuBox(
+                        expanded = showLanguageMenu,
+                        onExpandedChange = { showLanguageMenu = it },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        OutlinedTextField(
+                            value = selectedLanguageLabel,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Language") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLanguageMenu) },
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = showLanguageMenu,
+                            onDismissRequest = { showLanguageMenu = false },
                         ) {
-                            Checkbox(
-                                checked = story.id in selectedIds,
-                                onCheckedChange = { checked ->
-                                    selectedIds = if (checked) selectedIds + story.id else selectedIds - story.id
-                                },
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(story.title, style = MaterialTheme.typography.bodyMedium)
-                                val ageRange = when {
-                                    story.ageMin != null && story.ageMax != null -> "Ages ${story.ageMin}-${story.ageMax}"
-                                    story.ageMin != null -> "Ages ${story.ageMin}+"
-                                    story.ageMax != null -> "Up to age ${story.ageMax}"
-                                    else -> "All ages"
-                                }
-                                Text(
-                                    ageRange,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            languages.forEach { (code, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        onStoryLanguageChange(code)
+                                        showLanguageMenu = false
+                                    },
                                 )
                             }
                         }
                     }
                 }
             }
+
+            // Info text
+            Text(
+                "Age filter: ${if (childAge == 0) "Off" else "$childAge years"} | ${ageFilteredCatalog.filter { it.id in selectedIds }.size}/${ageFilteredCatalog.size} selected",
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 12.dp),
+            )
+
+            // Stories list - simple list (not LazyColumn, so scroll state is managed by parent Column)
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (ageFilteredCatalog.isEmpty()) {
+                Text(
+                    "No stories match this age range",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 24.dp),
+                )
+            } else {
+                // Simple list of stories with checkboxes
+                ageFilteredCatalog.forEach { story ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = story.id in selectedIds,
+                            onCheckedChange = { checked ->
+                                selectedIds = if (checked) selectedIds + story.id else selectedIds - story.id
+                            },
+                            modifier = Modifier.padding(end = 12.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                story.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            val ageRange = when {
+                                story.ageMin != null && story.ageMax != null -> "Ages ${story.ageMin}-${story.ageMax}"
+                                story.ageMin != null -> "Ages ${story.ageMin}+"
+                                story.ageMax != null -> "Up to age ${story.ageMax}"
+                                else -> "All ages"
+                            }
+                            Text(
+                                ageRange,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Spacer before buttons
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // Action buttons - fixed at bottom
+        // Fixed buttons at bottom - all in one line
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(24.dp)
+                .padding(top = 0.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(
                 onClick = { selectedIds = ageFilteredCatalog.map { it.id }.toSet() },
@@ -238,13 +253,12 @@ fun ManageStoriesScreen(
             ) {
                 Text("Deselect All")
             }
-        }
-
-        Button(
-            onClick = { onSave(selectedIds) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Save")
+            Button(
+                onClick = { onSave(selectedIds) },
+                modifier = Modifier.weight(1f),
+            ) {
+                Text("Save")
+            }
         }
     }
 }
