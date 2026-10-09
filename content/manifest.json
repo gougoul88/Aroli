@@ -10,7 +10,8 @@
       "ai": true,
       "publishedDate": "2026-10-02",
       "ageMin": 3,
-      "ageMax": 8
+      "ageMax": 8,
+      "folder": null
     }
   ]
 }

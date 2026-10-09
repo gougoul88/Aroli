@@ -45,8 +45,6 @@ fun ParentSettingsScreen(
     onClearCache: () -> Unit,
     allowAiStories: Boolean,
     onAllowAiStoriesChange: (Boolean) -> Unit,
-    userAge: Int?,
-    onUserAgeChange: (Int?) -> Unit,
     storyLanguage: String,
     onStoryLanguageChange: (String) -> Unit,
     sleepTimeoutMinutes: Int,
@@ -61,8 +59,6 @@ fun ParentSettingsScreen(
     onNightModeEndChange: (String) -> Unit,
     showTimeDisplay: Boolean,
     onShowTimeDisplayChange: (Boolean) -> Unit,
-    syncPeriodDays: Int,
-    onSyncPeriodDaysChange: (Int) -> Unit,
     maxVolumePercent: Int,
     onMaxVolumePercentChange: (Int) -> Unit,
     onManageStories: () -> Unit,
@@ -73,11 +69,9 @@ fun ParentSettingsScreen(
     onCheckUpdates: () -> Unit,
 ) {
     var showChangeCodeDialog by remember { mutableStateOf(false) }
-    var ageText by remember(userAge) { mutableStateOf(userAge?.toString() ?: "") }
     var sleepTimeoutText by remember(sleepTimeoutMinutes) { mutableStateOf(sleepTimeoutMinutes.toString()) }
     var nightModeStartText by remember(nightModeStart) { mutableStateOf(nightModeStart) }
     var nightModeEndText by remember(nightModeEnd) { mutableStateOf(nightModeEnd) }
-    var syncPeriodDaysText by remember(syncPeriodDays) { mutableStateOf(syncPeriodDays.toString()) }
 
     Column(
         modifier = Modifier
@@ -155,33 +149,6 @@ fun ParentSettingsScreen(
                         )
                     }
 
-                    // Cache Synchronization - only in WEB mode
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Cache Synchronization",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                        OutlinedTextField(
-                            value = syncPeriodDaysText,
-                            onValueChange = { text ->
-                                syncPeriodDaysText = text.filter(Char::isDigit).take(3)
-                                onSyncPeriodDaysChange(syncPeriodDaysText.toIntOrNull() ?: 1)
-                            },
-                            label = { Text("Sync Period (days)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Text(
-                            "GitHub manifest cache will refresh after this many days of inactivity",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 9.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                        )
-                    }
-
                     // Selective story download/visibility - only in WEB mode
                     Button(
                         onClick = onManageStories,
@@ -189,19 +156,6 @@ fun ParentSettingsScreen(
                     ) {
                         Text("Manage Stories")
                     }
-
-                    // Age filter - only in WEB mode
-                    OutlinedTextField(
-                        value = ageText,
-                        onValueChange = { text ->
-                            ageText = text.filter(Char::isDigit).take(2)
-                            onUserAgeChange(ageText.toIntOrNull())
-                        },
-                        label = { Text("Child Age (Optional)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
 
                     // Language filter - only in WEB mode
                     Column(modifier = Modifier.fillMaxWidth()) {
