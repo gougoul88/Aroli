@@ -14,6 +14,28 @@ object VersionInfo {
     }
 
     val RELEASE_NOTES = """
+        Version 1.1 (2026-10-09)
+        
+        ✨ New Features:
+        • Maximum volume limiter - protect children's hearing with a volume cap
+        • Logarithmic volume scaling - small slider changes produce more perceptible differences
+        • Improved installation scripts (install.bat & install.sh)
+        • Interactive setup wizard for kiosk mode enrollment
+        • Auto-launch app after installation
+        
+        🔧 Improvements:
+        • Volume control now uses quadratic progression for better sensitivity
+        • Installation scripts now prompt for kiosk mode setup
+        • Parent Settings includes new "Maximum Volume" slider (10-100%)
+        • Release assets on GitHub include both APK and install scripts
+        
+        📦 Technical:
+        • Player volume now capped at app level (independent of device volume)
+        • AppSettings.kt: Added maxVolumePercent preference
+        • PlayerViewModel: Logarithmic volume formula (percent/100)²
+        
+        ---
+        
         Version 1.0 (2026-09-29)
         
         ✨ Features:

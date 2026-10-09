@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,12 +43,6 @@ fun ParentSettingsScreen(
     onModeChange: (ContentMode) -> Unit,
     onPickFolder: () -> Unit,
     onClearCache: () -> Unit,
-    allowAiStories: Boolean,
-    onAllowAiStoriesChange: (Boolean) -> Unit,
-    userAge: Int?,
-    onUserAgeChange: (Int?) -> Unit,
-    storyLanguage: String,
-    onStoryLanguageChange: (String) -> Unit,
     sleepTimeoutMinutes: Int,
     onSleepTimeoutChange: (Int) -> Unit,
     showBatteryPercentage: Boolean,
@@ -60,8 +55,9 @@ fun ParentSettingsScreen(
     onNightModeEndChange: (String) -> Unit,
     showTimeDisplay: Boolean,
     onShowTimeDisplayChange: (Boolean) -> Unit,
-    syncPeriodDays: Int,
-    onSyncPeriodDaysChange: (Int) -> Unit,
+    maxVolumePercent: Int,
+    onMaxVolumePercentChange: (Int) -> Unit,
+    onManageStories: () -> Unit,
     onChangeCode: (String) -> Unit,
     onQuitApp: () -> Unit,
     onClose: () -> Unit,
@@ -69,11 +65,11 @@ fun ParentSettingsScreen(
     onCheckUpdates: () -> Unit,
 ) {
     var showChangeCodeDialog by remember { mutableStateOf(false) }
-    var ageText by remember(userAge) { mutableStateOf(userAge?.toString() ?: "") }
     var sleepTimeoutText by remember(sleepTimeoutMinutes) { mutableStateOf(sleepTimeoutMinutes.toString()) }
     var nightModeStartText by remember(nightModeStart) { mutableStateOf(nightModeStart) }
     var nightModeEndText by remember(nightModeEnd) { mutableStateOf(nightModeEnd) }
-    var syncPeriodDaysText by remember(syncPeriodDays) { mutableStateOf(syncPeriodDays.toString()) }
+
+    // Note: AI story filtering is now managed in the Story Manager web tool
 
     Column(
         modifier = Modifier
@@ -138,95 +134,21 @@ fun ParentSettingsScreen(
                     }
                 }
 
-                // AI stories filter - only in WEB mode
+                // Selective story download/visibility - only in WEB mode
                 if (mode == ContentMode.WEB) {
-                    Row(
+                    Button(
+                        onClick = onManageStories,
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Checkbox(checked = allowAiStories, onCheckedChange = onAllowAiStoriesChange)
-                        Text(
-                            "Allow AI-Generated Stories",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
+                        Text("Manage Stories")
                     }
-
-                    // Cache Synchronization - only in WEB mode
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Cache Synchronization",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                        OutlinedTextField(
-                            value = syncPeriodDaysText,
-                            onValueChange = { text ->
-                                syncPeriodDaysText = text.filter(Char::isDigit).take(3)
-                                onSyncPeriodDaysChange(syncPeriodDaysText.toIntOrNull() ?: 1)
-                            },
-                            label = { Text("Sync Period (days)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Text(
-                            "GitHub manifest cache will refresh after this many days of inactivity",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 9.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                        )
-                    }
-
-                    // Age filter - only in WEB mode
-                    OutlinedTextField(
-                        value = ageText,
-                        onValueChange = { text ->
-                            ageText = text.filter(Char::isDigit).take(2)
-                            onUserAgeChange(ageText.toIntOrNull())
-                        },
-                        label = { Text("Child Age (Optional)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                    Text(
+                        "Use Story Manager to mark stories as AI-generated or filter by age/language",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 9.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     )
-
-                    // Language filter - only in WEB mode
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Story Language",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            listOf("fr" to "French", "en" to "English", "de" to "German").forEach { (langCode, langName) ->
-                                Button(
-                                    onClick = { onStoryLanguageChange(langCode) },
-                                    modifier = Modifier.weight(1f),
-                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                        containerColor = if (storyLanguage == langCode)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.surface,
-                                    ),
-                                ) {
-                                    Text(
-                                        langName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (storyLanguage == langCode)
-                                            MaterialTheme.colorScheme.onPrimary
-                                        else
-                                            MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -273,6 +195,37 @@ fun ParentSettingsScreen(
                 }
                 Text(
                     "Display the battery percentage next to the battery icon",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 9.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+            }
+        }
+
+        // Maximum Volume Limit - caps playback loudness regardless of the device's hardware volume buttons
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    "Maximum Volume: $maxVolumePercent%",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Slider(
+                    value = maxVolumePercent.toFloat(),
+                    onValueChange = { onMaxVolumePercentChange(it.toInt()) },
+                    valueRange = 10f..100f,
+                    steps = 17,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "Limits how loud stories can play, to help protect children's hearing",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 9.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

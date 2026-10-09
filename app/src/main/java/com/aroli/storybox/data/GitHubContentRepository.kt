@@ -28,6 +28,7 @@ private data class ManifestStory(
     val publishedDate: String? = null,
     val ageMin: Int? = null,
     val ageMax: Int? = null,
+    val folder: String? = null,  // Virtual folder path, e.g. "Classiques/Animaux". null = root level
 )
 
 @Serializable
@@ -37,34 +38,88 @@ private data class Manifest(
 )
 
 /** Fetches stories + audio/images straight from this project's GitHub repo's `content/` folder. */
-class GitHubContentRepository(private val context: Context) : StoryRepository {
+class GitHubContentRepository(private val context: Context) : StoryRepository, FolderNavigableRepository {
 
     private val client = OkHttpClient()
     private val json = Json { ignoreUnknownKeys = true }
     private val manifestCacheFile = File(context.cacheDir, "manifest.json")
     private val audioCacheDir = File(context.cacheDir, "audio").apply { mkdirs() }
-    private var syncPeriodDays = 1  // Default: sync every day
 
-    fun setSyncPeriodDays(days: Int) {
-        syncPeriodDays = days.coerceAtLeast(1)  // At least 1 day
+    /** Parent-picked subset of story ids to show/download. Null = not configured yet, show everything. */
+    private var selectedStoryIds: Set<String>? = null
+
+    /** Current position in the virtual folder tree. Null = root. */
+    private var currentFolderPath: String? = null
+    private val navigationHistory = mutableListOf<String?>()
+
+    /** Restricts list() to these story ids (parent's "Manage Stories" selection). Null = show all. */
+    fun setSelectedStoryIds(ids: Set<String>?) {
+        selectedStoryIds = ids
     }
 
     override suspend fun list(): List<StoryItem> = withContext(Dispatchers.IO) {
-        val manifest = fetchManifestIfSyncNeeded() ?: readCachedManifest() ?: Manifest()
-        manifest.stories.map { story ->
+        val manifest = fetchManifestIfNeeded() ?: readCachedManifest() ?: Manifest()
+        val allStories = manifest.stories.map(::toStoryItem)
+        val visible = selectedStoryIds?.let { ids -> allStories.filter { it.id in ids } } ?: allStories
+        buildFolderView(visible, currentFolderPath)
+    }
+
+    /** Full unfiltered catalog (ignores selection + current folder) - used by the "Manage Stories" screen. */
+    suspend fun listCatalog(): List<StoryItem> = withContext(Dispatchers.IO) {
+        val manifest = fetchManifestIfNeeded() ?: readCachedManifest() ?: Manifest()
+        manifest.stories.map(::toStoryItem)
+    }
+
+    /** Builds the folder/story listing visible at [path] (null = root): direct stories + immediate subfolders. */
+    private fun buildFolderView(stories: List<StoryItem>, path: String?): List<StoryItem> {
+        val directStories = stories.filter { it.folder == path }
+        val prefix = if (path == null) "" else "$path/"
+        val subfolderNames = stories.mapNotNull { it.folder }
+            .filter { it != path && it.startsWith(prefix) }
+            .map { it.removePrefix(prefix).substringBefore('/') }
+            .distinct()
+            .sorted()
+        val folderItems = subfolderNames.map { name ->
             StoryItem(
-                id = story.id,
-                title = story.title,
-                audioUri = "$RAW_CONTENT_BASE/audio/${story.audioFile}",
-                imageUri = story.imageFile?.let { "$RAW_CONTENT_BASE/images/$it" },
-                language = story.language,
-                isAiGenerated = story.ai,
-                publishedDate = story.publishedDate,
-                ageMin = story.ageMin,
-                ageMax = story.ageMax,
+                id = "gh_folder:$prefix$name",
+                title = name,
+                audioUri = "",
+                isFolder = true,
+                folder = path,
             )
         }
+        return folderItems + directStories.sortedBy { it.title }
     }
+
+    private fun toStoryItem(story: ManifestStory) = StoryItem(
+        id = story.id,
+        title = story.title,
+        audioUri = "$RAW_CONTENT_BASE/audio/${story.audioFile}",
+        imageUri = story.imageFile?.let { "$RAW_CONTENT_BASE/images/$it" },
+        language = story.language,
+        isAiGenerated = story.ai,
+        publishedDate = story.publishedDate,
+        ageMin = story.ageMin,
+        ageMax = story.ageMax,
+        folder = story.folder,
+    )
+
+    /** Enter a virtual folder. Expects a StoryItem with isFolder=true. */
+    override suspend fun navigateInto(folder: StoryItem) {
+        if (!folder.isFolder) return
+        navigationHistory.add(currentFolderPath)
+        currentFolderPath = if (currentFolderPath == null) folder.title else "$currentFolderPath/${folder.title}"
+    }
+
+    /** Exit current virtual folder and go back to parent. */
+    override suspend fun navigateBack() {
+        if (navigationHistory.isNotEmpty()) {
+            currentFolderPath = navigationHistory.removeAt(navigationHistory.size - 1)
+        }
+    }
+
+    /** True if we are inside a subfolder (not at root). */
+    override fun canNavigateBack(): Boolean = navigationHistory.isNotEmpty()
 
     override suspend fun resolvePlayableUri(item: StoryItem): String = withContext(Dispatchers.IO) {
         val cached = File(audioCacheDir, "${item.id}.mp3")
@@ -93,19 +148,29 @@ class GitHubContentRepository(private val context: Context) : StoryRepository {
         }
     }
 
-    private fun fetchManifestIfSyncNeeded(): Manifest? {
-        // Check if cache needs refresh based on sync period
-        if (manifestCacheFile.exists()) {
-            val lastModified = manifestCacheFile.lastModified()
-            val now = System.currentTimeMillis()
-            val daysSinceLastSync = (now - lastModified) / (1000 * 60 * 60 * 24)
-            if (daysSinceLastSync < syncPeriodDays) {
-                // Cache is still fresh, don't sync
-                return null
-            }
+    /** Fetch manifest only if not already cached. Returns null if cache exists (let caller use cached version). */
+    private fun fetchManifestIfNeeded(): Manifest? {
+        if (!manifestCacheFile.exists()) {
+            return fetchManifest()  // Try to fetch if cache doesn't exist
         }
-        // Cache is stale or doesn't exist, try to fetch fresh manifest
-        return fetchManifest()
+        return null  // Cache exists, let caller use cached version
+    }
+
+    /** Force refresh the manifest from GitHub, overwriting cache. Called when opening Manage Stories. */
+    suspend fun forceRefreshManifest() = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder().url("$RAW_CONTENT_BASE/manifest.json").build()
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val body = response.body?.string()
+                    if (body != null) {
+                        manifestCacheFile.writeText(body)
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            // Offline or network error - cache will be used on next list() call
+        }
     }
 
     private fun readCachedManifest(): Manifest? {

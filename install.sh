@@ -65,17 +65,46 @@ echo "========================================"
 echo "SUCCESS! Aroli installed successfully!"
 echo "========================================"
 echo ""
-echo "Next steps:"
-echo "1. For Kiosk Mode (optional, requires factory reset):"
-echo "   - Factory reset your device"
-echo "   - Skip Google Account during setup"
-echo "   - Run: adb shell dpm set-device-owner com.aroli.storybox/.AdminReceiver"
+
+# Ask if user wants to setup Kiosk Mode
 echo ""
-echo "2. Launch the app:"
-echo "   - Tap the Aroli icon on your device"
-echo "   - Or run: adb shell am start -n com.aroli.storybox/.MainActivity"
+echo "Do you want to setup Kiosk Mode now?"
+echo "(Note: Device should be factory reset and no Google Account added)"
 echo ""
-echo "3. Access Parent Settings:"
-echo "   - Tap the gear icon (top-right)"
-echo "   - Enter PIN: 000000"
+read -p "Setup Kiosk Mode? (y/n): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "Setting up Kiosk Mode..."
+    adb shell dpm set-device-owner com.aroli.storybox/.AdminReceiver
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo "WARNING: Kiosk Mode setup failed."
+        echo "Make sure device is factory reset and no Google Account is added."
+    else
+        echo ""
+        echo "SUCCESS! Kiosk Mode enabled."
+    fi
+fi
+
+echo ""
+echo "Do you want to launch Aroli now?"
+read -p "Start Aroli? (y/n): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "Launching Aroli..."
+    adb shell am start -n com.aroli.storybox/.MainActivity
+    echo ""
+    echo "Aroli is now running!"
+fi
+
+echo ""
+echo "========================================"
+echo "Installation Complete!"
+echo "========================================"
+echo ""
+echo "To access Parent Settings:"
+echo "- Tap the gear icon (top-right)"
+echo "- Enter PIN: 000000 (default)"
 echo ""

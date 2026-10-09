@@ -34,6 +34,7 @@ import com.aroli.storybox.data.StoryItem
 import com.aroli.storybox.player.PlayerViewModel
 import com.aroli.storybox.ui.NoUpdateDialog
 import com.aroli.storybox.ui.NightModeScreen
+import com.aroli.storybox.ui.ManageStoriesScreen
 import com.aroli.storybox.ui.ParentCodeDialog
 import com.aroli.storybox.ui.ParentSettingsScreen
 import com.aroli.storybox.ui.LoadingScreen
@@ -86,6 +87,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var appSettings: AppSettings
     private lateinit var initialRepository: FilteredStoryRepository
     private var initialLastIndex: Int = 0
+    private var initialMaxVolumePercent: Int = 100
+    private var initialSelectedStoryIds: Set<String>? = null
 
     private val pickFolderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
@@ -104,19 +107,19 @@ class MainActivity : ComponentActivity() {
         // Preload all initial settings synchronously to avoid "No stories" flicker on startup
         var initialMode = ContentMode.WEB
         var initialFolderUri: String? = null
-        var initialAllowAiStories = true
         var initialUserAge: Int? = null
         var initialStoryLanguage = "fr"
         var lastIndexOnStartup = 0
-        var initialSyncPeriodDays = 1
+        var initialMaxVolumePercent = 100
+        var initialSelectedStoryIds: Set<String>? = null
         runBlocking {
             initialMode = appSettings.mode.first()
             initialFolderUri = appSettings.folderUri.first()
-            initialAllowAiStories = appSettings.allowAiStories.first()
             initialUserAge = appSettings.userAge.first()
             initialStoryLanguage = appSettings.storyLanguage.first()
             lastIndexOnStartup = appSettings.lastIndex.first()
-            initialSyncPeriodDays = appSettings.syncPeriodDays.first()
+            initialMaxVolumePercent = appSettings.maxVolumePercent.first()
+            initialSelectedStoryIds = appSettings.selectedStoryIds.first()
         }
         
         // Pre-load the repository with initial settings before setContent
@@ -124,13 +127,12 @@ class MainActivity : ComponentActivity() {
             LocalFolderRepository(applicationContext, Uri.parse(initialFolderUri))
         } else {
             val ghRepo = GitHubContentRepository(applicationContext)
-            ghRepo.setSyncPeriodDays(initialSyncPeriodDays)
+            ghRepo.setSelectedStoryIds(initialSelectedStoryIds)
             ghRepo
         }
         
         val initialRepository = FilteredStoryRepository(
             baseRepository,
-            initialAllowAiStories,
             initialUserAge,
             initialStoryLanguage
         )
@@ -138,6 +140,8 @@ class MainActivity : ComponentActivity() {
         // Store in class members for access in setContent lambda
         this.initialRepository = initialRepository
         this.initialLastIndex = lastIndexOnStartup
+        this.initialMaxVolumePercent = initialMaxVolumePercent
+        this.initialSelectedStoryIds = initialSelectedStoryIds
 
         // Kid-facing kiosk screen: ignore system back gesture (Phase 5 adds screen pinning on top of this).
         onBackPressedDispatcher.addCallback(this) { /* no-op */ }
@@ -146,7 +150,6 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val mode by appSettings.mode.collectAsStateWithLifecycle(initialValue = initialMode)
                     val folderUri by appSettings.folderUri.collectAsStateWithLifecycle(initialValue = initialFolderUri)
-                    val allowAiStories by appSettings.allowAiStories.collectAsStateWithLifecycle(initialValue = initialAllowAiStories)
                     val userAge by appSettings.userAge.collectAsStateWithLifecycle(initialValue = initialUserAge)
                     val storyLanguage by appSettings.storyLanguage.collectAsStateWithLifecycle(initialValue = initialStoryLanguage)
                     val sleepTimeoutMinutes by appSettings.sleepTimeoutMinutes.collectAsStateWithLifecycle(initialValue = 10)
@@ -155,12 +158,16 @@ class MainActivity : ComponentActivity() {
                     val nightModeStart by appSettings.nightModeStart.collectAsStateWithLifecycle(initialValue = "21:00")
                     val nightModeEnd by appSettings.nightModeEnd.collectAsStateWithLifecycle(initialValue = "07:00")
                     val showTimeDisplay by appSettings.showTimeDisplay.collectAsStateWithLifecycle(initialValue = true)
-                    val syncPeriodDays by appSettings.syncPeriodDays.collectAsStateWithLifecycle(initialValue = 1)
+                    val maxVolumePercent by appSettings.maxVolumePercent.collectAsStateWithLifecycle(initialValue = initialMaxVolumePercent)
+                    val selectedStoryIds by appSettings.selectedStoryIds.collectAsStateWithLifecycle(initialValue = initialSelectedStoryIds)
                     val parentCode by appSettings.parentCode.collectAsStateWithLifecycle(initialValue = DEFAULT_PARENT_CODE)
                     val uiState by playerViewModel.uiState.collectAsStateWithLifecycle()
 
                     var showSettings by remember { mutableStateOf(false) }
                     var showCodeDialog by remember { mutableStateOf(false) }
+                    var showManageStories by remember { mutableStateOf(false) }
+                    var manageStoriesCatalog by remember { mutableStateOf<List<StoryItem>>(emptyList()) }
+                    var manageStoriesLoading by remember { mutableStateOf(false) }
                     var forceReloadKey by remember { mutableStateOf(0) }
                     var showSleepMode by remember { mutableStateOf(false) }
                     var showNightMode by remember { mutableStateOf(isNightModeActive(nightModeEnabled, nightModeStart, nightModeEnd)) }
@@ -172,6 +179,22 @@ class MainActivity : ComponentActivity() {
                     // Load initial repository on first composition to display stories (shows LoadingScreen while loading)
                     LaunchedEffect(Unit) {
                         playerViewModel.load(initialRepository, initialLastIndex)
+                    }
+
+                    // Apply the parental volume cap whenever it changes.
+                    LaunchedEffect(maxVolumePercent) {
+                        playerViewModel.setMaxVolumePercent(maxVolumePercent)
+                    }
+
+                    // Fetches the full unfiltered GitHub catalog for the "Manage Stories" picker when opened.
+                    LaunchedEffect(showManageStories) {
+                        if (showManageStories) {
+                            manageStoriesLoading = true
+                            val ghRepo = GitHubContentRepository(applicationContext)
+                            ghRepo.forceRefreshManifest()  // Refresh from GitHub when opening Manage Stories
+                            manageStoriesCatalog = ghRepo.listCatalog()
+                            manageStoriesLoading = false
+                        }
                     }
 
                     // Update time display every minute (or every second if preferred)
@@ -206,15 +229,15 @@ class MainActivity : ComponentActivity() {
                     var downloadUrl by remember { mutableStateOf<String?>(null) }
 
                     // (Re)loads the active repository whenever mode/folder/filters change, restoring the last bookmark.
-                    LaunchedEffect(mode, folderUri, allowAiStories, userAge, storyLanguage, syncPeriodDays, forceReloadKey) {
+                    LaunchedEffect(mode, folderUri, storyLanguage, selectedStoryIds, forceReloadKey) {
                         val base = if (mode == ContentMode.LOCAL && folderUri != null) {
                             LocalFolderRepository(applicationContext, Uri.parse(folderUri))
                         } else {
                             val ghRepo = GitHubContentRepository(applicationContext)
-                            ghRepo.setSyncPeriodDays(syncPeriodDays)
+                            ghRepo.setSelectedStoryIds(selectedStoryIds)
                             ghRepo
                         }
-                        val repository = FilteredStoryRepository(base, allowAiStories, userAge, storyLanguage)
+                        val repository = FilteredStoryRepository(base, userAge, storyLanguage)
                         val startIndex = appSettings.lastIndex.first()
                         playerViewModel.load(repository, startIndex)
                     }
@@ -226,10 +249,10 @@ class MainActivity : ComponentActivity() {
                                 LocalFolderRepository(applicationContext, Uri.parse(folderUri))
                             } else {
                                 val ghRepo = GitHubContentRepository(applicationContext)
-                                ghRepo.setSyncPeriodDays(syncPeriodDays)
+                                ghRepo.setSelectedStoryIds(selectedStoryIds)
                                 ghRepo
                             }
-                            val repository = FilteredStoryRepository(base, allowAiStories, userAge, storyLanguage)
+                            val repository = FilteredStoryRepository(base, userAge, storyLanguage)
                             playerViewModel.load(repository, uiState.currentIndex)
                         }
                     }
@@ -275,6 +298,21 @@ class MainActivity : ComponentActivity() {
                                     playerViewModel.togglePlayPause()
                                 }
                             })
+                        } else if (showManageStories) {
+                            ManageStoriesScreen(
+                                catalog = manageStoriesCatalog,
+                                initiallySelectedIds = selectedStoryIds,
+                                isLoading = manageStoriesLoading,
+                                userAge = userAge,
+                                onUserAgeChange = { age -> lifecycleScope.launch { appSettings.setUserAge(age) } },
+                                storyLanguage = storyLanguage,
+                                onStoryLanguageChange = { lang -> lifecycleScope.launch { appSettings.setStoryLanguage(lang) } },
+                                onSave = { ids ->
+                                    lifecycleScope.launch { appSettings.setSelectedStoryIds(ids) }
+                                    showManageStories = false
+                                },
+                                onClose = { showManageStories = false },
+                            )
                         } else if (showSettings) {
                             ParentSettingsScreen(
                                 mode = mode,
@@ -284,12 +322,6 @@ class MainActivity : ComponentActivity() {
                                     appSettings.clearCache()
                                     forceReloadKey += 1  // Trigger repository reload with fresh data
                                 },
-                                allowAiStories = allowAiStories,
-                                onAllowAiStoriesChange = { allow -> lifecycleScope.launch { appSettings.setAllowAiStories(allow) } },
-                                userAge = userAge,
-                                onUserAgeChange = { age -> lifecycleScope.launch { appSettings.setUserAge(age) } },
-                                storyLanguage = storyLanguage,
-                                onStoryLanguageChange = { lang -> lifecycleScope.launch { appSettings.setStoryLanguage(lang) } },
                                 sleepTimeoutMinutes = sleepTimeoutMinutes,
                                 onSleepTimeoutChange = { minutes -> lifecycleScope.launch { appSettings.setSleepTimeoutMinutes(minutes) } },
                                 showBatteryPercentage = showBatteryPercentage,
@@ -302,8 +334,9 @@ class MainActivity : ComponentActivity() {
                                 onNightModeEndChange = { time -> lifecycleScope.launch { appSettings.setNightModeEnd(time) } },
                                 showTimeDisplay = showTimeDisplay,
                                 onShowTimeDisplayChange = { show -> lifecycleScope.launch { appSettings.setShowTimeDisplay(show) } },
-                                syncPeriodDays = syncPeriodDays,
-                                onSyncPeriodDaysChange = { days -> lifecycleScope.launch { appSettings.setSyncPeriodDays(days) } },
+                                maxVolumePercent = maxVolumePercent,
+                                onMaxVolumePercentChange = { percent -> lifecycleScope.launch { appSettings.setMaxVolumePercent(percent) } },
+                                onManageStories = { showManageStories = true },
                                 onChangeCode = { code -> lifecycleScope.launch { appSettings.setParentCode(code) } },
                                 onQuitApp = {
                                     lifecycleScope.launch {
