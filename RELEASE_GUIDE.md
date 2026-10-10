@@ -23,8 +23,8 @@ git push origin main
 ### 3. Create Release Tag
 
 ```bash
-git tag v1.3
-git push origin v1.3
+git tag v1.5
+git push origin v1.5
 ```
 
 ✅ **Done!** GitHub Actions will automatically:

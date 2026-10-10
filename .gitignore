@@ -36,3 +36,4 @@ dist/
 .keystore.pass
 Aroli.keystore
 gradle.properties.template
+Aroli.keystore.b64
