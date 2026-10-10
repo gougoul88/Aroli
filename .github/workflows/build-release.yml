@@ -34,6 +34,21 @@ jobs:
           echo "${{ secrets.KEYSTORE_PASSWORD }}" > .keystore.pass
           echo "✓ Keystore restored from GitHub secrets"
 
+      - name: Create gradle.properties
+        run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          org.gradle.parallel=true
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          kotlin.code.style=official
+          org.gradle.tooling.parallel=true
+          alias=aroli_release
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEYSTORE_PASSWORD }}
+          EOF
+          echo "✓ gradle.properties created"
+
       - name: Build Release APK
         run: ./gradlew assembleRelease -q
         env:
