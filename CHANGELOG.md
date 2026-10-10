@@ -2,11 +2,47 @@
 
 All notable changes to Aroli will be documented in this file.
 
-## [1.4] - TBD
+## [1.5] - 2026-10-10
 
-### ✨ Coming Soon
+### 🔒 Security & Infrastructure
 
-- Under development...
+- **APK Release Signing**: Implemented proper digital certificate signing for release APKs
+  - Keystore generated with PKCS12 format (2048-bit RSA, 10000-day validity)
+  - Secure password storage in git-ignored `.keystore.pass` file
+  - Gradle task auto-generates keystore if missing
+  - Resolves `INSTALL_PARSE_FAILED_NO_CERTIFICATES` installation errors
+
+- **GitHub Actions CI/CD Pipeline**: Automated release builds with artifact deployment
+  - Triggers on version tags (v*)
+  - Restores keystore from GitHub Secrets (base64-encoded)
+  - Builds signed release APK automatically
+  - Creates GitHub Release with APK and installation scripts
+  - Environment variable priority: CI secrets > local files > gradle.properties
+
+### 🛠️ Technical Improvements
+
+- Updated Gradle build configuration to read keystore credentials from multiple sources
+- Secured gradle.properties by removing from git tracking and adding to .gitignore
+- Created gradle.properties.template for documentation
+- Improved build system robustness for both local and CI/CD workflows
+
+---
+
+## [1.4] - 2026-10-09
+
+### ✨ New Features
+
+- **AI Story Filtering in Manage Stories**: Parents can now control whether AI-generated stories are shown
+  - Checkbox "Show AI-Generated Stories" in Manage Stories screen
+  - Checked by default (shows all stories)
+  - Unchecked (hides AI-generated stories)
+  - Filter indicator in counter showing "AI: Yes/No"
+
+### 🔧 Technical Changes
+
+- Added AI-generated story filtering in ManageStoriesScreen
+- Stories marked with "ai: true" in manifest.json can be filtered
+- Story Manager web tool displays 🤖 AI badge for easy identification
 
 ---
 
