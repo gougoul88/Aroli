@@ -17,6 +17,24 @@ android {
         versionName = "1.4"
     }
 
+    // Signing configuration for release builds
+    signingConfigs {
+        create("release") {
+            // Read password from .keystore.pass file (generated at project init)
+            val passwordFile = rootProject.file(".keystore.pass")
+            val password = if (passwordFile.exists()) {
+                passwordFile.readText().trim()
+            } else {
+                project.findProperty("storePassword") as? String ?: ""
+            }
+            
+            keyAlias = project.findProperty("alias") as? String ?: "aroli_release"
+            keyPassword = password
+            storeFile = rootProject.file("Aroli.keystore")
+            storePassword = password
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
@@ -25,6 +43,7 @@ android {
         release {
             isDebuggable = false
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             // For production, you may want to enable minification:
             // isMinifyEnabled = true
             // proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -77,4 +96,55 @@ dependencies {
     implementation("androidx.documentfile:documentfile:1.0.1")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+}
+
+// Task to generate keystore if it doesn't exist
+tasks.register("generateKeystore") {
+    doLast {
+        val keystorePath = rootProject.file("Aroli.keystore")
+        val passwordPath = rootProject.file(".keystore.pass")
+        
+        if (!passwordPath.exists()) {
+            throw GradleException("Password file not found: ${passwordPath.absolutePath}")
+        }
+        
+        val password = passwordPath.readText().trim()
+        
+        // Always delete and regenerate to ensure correct password
+        if (keystorePath.exists()) {
+            keystorePath.delete()
+        }
+        
+        // Use Java's built-in KeyStore to create a PKCS12 keystore
+        val keytoolPath = "${System.getProperty("java.home")}/bin/keytool"
+        val pb = ProcessBuilder(
+            keytoolPath,
+            "-genkey", "-v", "-keystore", keystorePath.absolutePath,
+            "-keyalg", "RSA",
+            "-keysize", "2048",
+            "-validity", "10000",
+            "-alias", "aroli_release",
+            "-dname", "CN=Aroli Story Box,O=Aroli,L=France,ST=France,C=FR",
+            "-storepass", password,
+            "-keypass", password,
+            "-storetype", "PKCS12"
+        )
+        
+        val process = pb.start()
+        val stderr = process.errorStream.bufferedReader().use { it.readText() }
+        val exitCode = process.waitFor()
+        
+        if (exitCode == 0) {
+            println("✓ Keystore generated: ${keystorePath.absolutePath}")
+        } else {
+            throw GradleException("Failed to generate keystore (exit code $exitCode): $stderr")
+        }
+    }
+}
+
+// Make release build depend on keystore generation
+tasks.configureEach {
+    if (name == "assembleRelease" || name.contains("Release")) {
+        dependsOn("generateKeystore")
+    }
 }

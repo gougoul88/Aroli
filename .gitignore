@@ -2,6 +2,7 @@
 *.iml
 .gradle/
 local.properties
+gradle.properties
 .idea/
 .DS_Store
 build/
@@ -32,3 +33,6 @@ __pycache__/
 # tmp/ - for temporary build artifacts (screenshots/ folder is tracked for documentation)
 dist/
 .kotlin/
+.keystore.pass
+Aroli.keystore
+gradle.properties.template
