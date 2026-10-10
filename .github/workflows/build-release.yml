@@ -28,8 +28,16 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Restore keystore from secrets
+        run: |
+          echo "${{ secrets.KEYSTORE_FILE_BASE64 }}" | base64 -d > Aroli.keystore
+          echo "${{ secrets.KEYSTORE_PASSWORD }}" > .keystore.pass
+          echo "✓ Keystore restored from GitHub secrets"
+
       - name: Build Release APK
         run: ./gradlew assembleRelease -q
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
       - name: Find APK file
         id: find_apk

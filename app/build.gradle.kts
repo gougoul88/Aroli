@@ -20,12 +20,14 @@ android {
     // Signing configuration for release builds
     signingConfigs {
         create("release") {
-            // Read password from .keystore.pass file (generated at project init)
-            val passwordFile = rootProject.file(".keystore.pass")
-            val password = if (passwordFile.exists()) {
-                passwordFile.readText().trim()
-            } else {
-                project.findProperty("storePassword") as? String ?: ""
+            // Read password from environment variable (CI), .keystore.pass file (local), or gradle.properties (fallback)
+            val password = System.getenv("KEYSTORE_PASSWORD")?.trim() ?: run {
+                val passwordFile = rootProject.file(".keystore.pass")
+                if (passwordFile.exists()) {
+                    passwordFile.readText().trim()
+                } else {
+                    project.findProperty("storePassword") as? String ?: ""
+                }
             }
             
             keyAlias = project.findProperty("alias") as? String ?: "aroli_release"
